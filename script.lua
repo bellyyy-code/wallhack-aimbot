@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "6.6.0"
+ScriptSense.Version = "6.7.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -48,6 +48,7 @@ ScriptSense.Config = {
     BoxEspEnabled = false,
     AntiAimEnabled = false,
     TouchFlingEnabled = false,
+    KickFlingEnabled = false,
 
     FlySpeed = 50,
     SpinSpeed = 25,
@@ -296,37 +297,38 @@ local function GetKeyName(keyCode)
     return string.lower(name)
 end
 
--- DropKick execution function
-local function TriggerDropKick()
-    local discord = "https://discord.gg/AeuSH2EQK"
-    if setclipboard then
-        setclipboard(discord)
-    end
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "DropKick Script",
-            Text = "Discord copied! Join: " .. discord,
-            Duration = 10,
-            Button1 = "Okay"
-        })
-    end)
-    task.spawn(function()
-        local success, err = pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/universal/DropKick.lua"))()
+-- DropKick (Kick Fling) toggle function
+getgenv().DropKickActive = false
+
+local function ToggleKickFling()
+    ScriptSense.Config.KickFlingEnabled = not ScriptSense.Config.KickFlingEnabled
+    if ScriptSense.Config.KickFlingEnabled then
+        getgenv().DropKickActive = true
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "KickFling",
+                Text = "DropKick enabled.",
+                Duration = 4,
+            })
         end)
-        if success then
-            print("✅ DropKick script loaded successfully!")
-        else
-            warn("❌ Failed to load DropKick script: " .. tostring(err))
-            pcall(function()
-                game:GetService("StarterGui"):SetCore("SendNotification", {
-                    Title = "DropKick Script",
-                    Text = "Failed to load DropKick script.\nCheck your executor or internet.",
-                    Duration = 8,
-                })
+        task.spawn(function()
+            local success, err = pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/universal/DropKick.lua"))()
             end)
-        end
-    end)
+            if not success then
+                warn("❌ Failed to load DropKick script: " .. tostring(err))
+            end
+        end)
+    else
+        getgenv().DropKickActive = false
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "KickFling",
+                Text = "DropKick disabled.",
+                Duration = 4,
+            })
+        end)
+    end
 end
 
 -- Populate Main Control Panel Rows
@@ -410,13 +412,14 @@ CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
 end)
 verticalOffset = verticalOffset + 42
 
--- DropKick (Kick Fling) button with bind Z
-CreateControlRow(MainControlPanel, verticalOffset, "kick fling | bind: z", function()
-    TriggerDropKick()
+-- KickFling (DropKick) button with bind Z
+local _, kickFlingRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "kick fling: off | bind: z", function()
+    ToggleKickFling()
 end)
+UIComponentRegistry["kickfling"] = kickFlingRowBtn
 verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
+local _, menuToggleRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
     ToggleKeybindsMenu()
 end)
 UIComponentRegistry["menutoggle"] = menuToggleRowBtn
@@ -424,7 +427,7 @@ verticalOffset = verticalOffset + 42
 
 -- Intro Sequence (2s Typewriter)
 task.spawn(function()
-    local fullText = "SCRIPT SENSE [v6.6.0]"
+    local fullText = "SCRIPT SENSE [v6.7.0]"
     local totalChars = #fullText
     local totalDuration = 2.0
     local charDelay = totalDuration / totalChars
@@ -439,7 +442,7 @@ task.spawn(function()
         end
         
         if count > 12 then
-            local spaceAndVer = string.sub(" [v6.6.0]", 1, count - 12)
+            local spaceAndVer = string.sub(" [v6.7.0]", 1, count - 12)
             res = res .. '<font color="#AAAAAA">' .. spaceAndVer .. '</font>'
         end
         
@@ -450,7 +453,7 @@ task.spawn(function()
         WatermarkLabel.Text = getPartialText(i)
         task.wait(charDelay)
     end
-    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">[v6.6.0]</font>'
+    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">[v6.7.0]</font>'
 
     local currentAbsPos = WatermarkContainer.AbsolutePosition
     WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
@@ -953,6 +956,9 @@ RunService.RenderStepped:Connect(function()
     if UIComponentRegistry["touchfling"] then 
         UIComponentRegistry["touchfling"].Text = "touchfling: " .. (ScriptSense.Config.TouchFlingEnabled and "on" or "off") .. " | bind: " .. GetKeyName(ScriptSense.Config.Keybinds.TouchFling) 
     end
+    if UIComponentRegistry["kickfling"] then
+        UIComponentRegistry["kickfling"].Text = "kick fling: " .. (ScriptSense.Config.KickFlingEnabled and "on" or "off") .. " | bind: " .. GetKeyName(ScriptSense.Config.Keybinds.KickFling)
+    end
     if UIComponentRegistry["menutoggle"] then
         UIComponentRegistry["menutoggle"].Text = "keybinds menu | bind: " .. GetKeyName(ScriptSense.Config.Keybinds.MenuToggle)
     end
@@ -996,11 +1002,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 startFlingThread()
             end
         elseif input.KeyCode == ScriptSense.Config.Keybinds.KickFling then
-            TriggerDropKick()
+            ToggleKickFling()
         elseif input.KeyCode == ScriptSense.Config.Keybinds.MenuToggle then
             ToggleKeybindsMenu()
         end
     end
 end)
 
-print("[ScriptSense Enterprise v6.6.0]: Loaded successfully.")
+print("[ScriptSense Enterprise v6.7.0]: Loaded successfully.")
