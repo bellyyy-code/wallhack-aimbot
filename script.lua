@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.6.0"
+ScriptSense.Version = "7.6.2"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -205,7 +205,7 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 240, 0, 420)
+MainControlPanel.Size = UDim2.new(0, 240, 0, 440)
 MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
@@ -408,9 +408,9 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
     return rowFrame, button
 end
 
-local function CreateTextBoxRow(parent, labelText, initialValue, onValueChanged)
+local function CreateSliderRow(parent, labelText, minVal, maxVal, initialValue, onValueChanged)
     local rowFrame = Instance.new("Frame")
-    rowFrame.Size = UDim2.new(1, 0, 0, 38)
+    rowFrame.Size = UDim2.new(1, 0, 0, 48)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
@@ -424,46 +424,70 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onValueChanged)
     stroke.Parent = rowFrame
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.65, 0, 1, 0)
-    label.Position = UDim2.new(0, 12, 0, 0)
+    label.Size = UDim2.new(1, -24, 0, 20)
+    label.Position = UDim2.new(0, 12, 0, 6)
     label.BackgroundTransparency = 1
     label.TextTransparency = 1
     label.TextColor3 = Color3.fromRGB(230, 230, 230)
     label.TextSize = 13
     label.Font = Enum.Font.GothamMedium
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = "  " .. labelText
+    label.Text = "  " .. labelText .. " (" .. tostring(initialValue) .. ")"
     label.Parent = rowFrame
 
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0, 65, 0, 24)
-    textBox.Position = UDim2.new(1, -77, 0.5, -12)
-    textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textBox.TextTransparency = 1
-    textBox.TextSize = 12
-    textBox.Font = Enum.Font.GothamMedium
-    textBox.Text = tostring(initialValue)
-    textBox.ClearTextOnFocus = false
-    textBox.Parent = rowFrame
+    local sliderBg = Instance.new("Frame")
+    sliderBg.Size = UDim2.new(1, -24, 0, 6)
+    sliderBg.Position = UDim2.new(0, 12, 0, 32)
+    sliderBg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    sliderBg.BorderSizePixel = 0
+    sliderBg.Parent = rowFrame
 
-    local tbStroke = Instance.new("UIStroke")
-    tbStroke.Color = Color3.fromRGB(60, 60, 60)
-    tbStroke.Thickness = 1
-    tbStroke.Transparency = 1
-    tbStroke.Parent = textBox
+    local sliderBgStroke = Instance.new("UIStroke")
+    sliderBgStroke.Color = Color3.fromRGB(50, 50, 50)
+    sliderBgStroke.Thickness = 1
+    sliderBgStroke.Transparency = 1
+    sliderBgStroke.Parent = sliderBg
 
-    textBox.FocusLost:Connect(function(enterPressed)
-        local num = tonumber(textBox.Text)
-        if num then
-            onValueChanged(num)
-        else
-            textBox.Text = tostring(initialValue)
+    local sliderFill = Instance.new("Frame")
+    local initPercent = math.clamp((initialValue - minVal) / (maxVal - minVal), 0, 1)
+    sliderFill.Size = UDim2.new(initPercent, 0, 1, 0)
+    sliderFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    sliderFill.BorderSizePixel = 0
+    sliderFill.Parent = sliderBg
+
+    local dragging = false
+    local function updateValue(input)
+        local pos = input.Position.X
+        local absPos = sliderBg.AbsolutePosition.X
+        local absSize = sliderBg.AbsoluteSize.X
+        local percent = math.clamp((pos - absPos) / (absSize > 0 and absSize or 1), 0, 1)
+        local val = math.floor(minVal + (maxVal - minVal) * percent)
+        sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+        label.Text = "  " .. labelText .. " (" .. tostring(val) .. ")"
+        onValueChanged(val)
+    end
+
+    sliderBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateValue(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateValue(input)
         end
     end)
 
     table.insert(controlRowFrames, rowFrame)
-    return rowFrame, textBox
+    return rowFrame
 end
 
 local activeRebindKey = nil
@@ -534,7 +558,7 @@ end, function(btn)
     btn.Text = "  speedhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
 end)
 
-CreateTextBoxRow(MainContainer, "speedhack | speed (textbox)", ScriptSense.Config.SpeedhackSpeed, function(val)
+CreateSliderRow(MainContainer, "speedhack | speed", 16, 200, ScriptSense.Config.SpeedhackSpeed, function(val)
     ScriptSense.Config.SpeedhackSpeed = val
 end)
 
@@ -545,11 +569,11 @@ end, function(btn)
     btn.Text = "  anti-aim: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.AntiAim))
 end)
 
-CreateTextBoxRow(MainContainer, "anti aim | speed (textbox)", ScriptSense.Config.SpinSpeed, function(val)
+CreateSliderRow(MainContainer, "anti aim | speed", 1, 100, ScriptSense.Config.SpinSpeed, function(val)
     ScriptSense.Config.SpinSpeed = val
 end)
 
-CreateTextBoxRow(MainContainer, "anti aim | angle (textbox)", ScriptSense.Config.AntiAimHeadAngle, function(val)
+CreateSliderRow(MainContainer, "anti aim | angle", 0, 360, ScriptSense.Config.AntiAimHeadAngle, function(val)
     ScriptSense.Config.AntiAimHeadAngle = val
 end)
 
@@ -823,15 +847,15 @@ task.spawn(function()
                 local btn = rowFrame:FindFirstChildOfClass("TextButton")
                 if btn then TweenService:Create(btn, rowTweenInfo, { TextTransparency = 0 }):Play() end
                 
-                local txtBox = rowFrame:FindFirstChildOfClass("TextBox")
-                if txtBox then
-                    TweenService:Create(txtBox, rowTweenInfo, { TextTransparency = 0 }):Play()
-                    local tbStroke = txtBox:FindFirstChildOfClass("UIStroke")
-                    if tbStroke then TweenService:Create(tbStroke, rowTweenInfo, { Transparency = 0 }):Play() end
-                end
-                
                 local lbl = rowFrame:FindFirstChildOfClass("TextLabel")
                 if lbl then TweenService:Create(lbl, rowTweenInfo, { TextTransparency = 0 }):Play() end
+
+                local sliderBg = rowFrame:FindFirstChildOfClass("Frame")
+                if sliderBg then
+                    for _, child in ipairs(sliderBg:GetChildren()) do
+                        if child:IsA("UIStroke") then TweenService:Create(child, rowTweenInfo, { Transparency = 0 }):Play() end
+                    end
+                end
             end)
         end
     end
@@ -1577,5 +1601,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     RefreshControlRowTexts()
 end)
 
-print("[ScriptSense v7.6.0]: Updated with explicit setting descriptions.")
+CreateSliderRow(MainContainer, "speedhack | speed", 16, 200, ScriptSense.Config.SpeedhackSpeed, function(val)
+    ScriptSense.Config.SpeedhackSpeed = val
+end)
+
+CreateSliderRow(MainContainer, "anti aim | speed", 1, 100, ScriptSense.Config.SpinSpeed, function(val)
+    ScriptSense.Config.SpinSpeed = val
+end)
+
+CreateSliderRow(MainContainer, "anti aim | angle", 0, 360, ScriptSense.Config.AntiAimHeadAngle, function(val)
+    ScriptSense.Config.AntiAimHeadAngle = val
+end)
+
+print("[ScriptSense v7.6.2]: Updated slider labels.")
 return ScriptSense
