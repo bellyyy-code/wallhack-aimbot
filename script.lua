@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.6.5"
+ScriptSense.Version = "7.6.6"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -117,46 +117,6 @@ ESPContainer.Parent = ScreenGui
 
 local IsMobileDevice = UserInputService.TouchEnabled
 
--- Draggable Utility Function (kept for keybinds window if needed, but removed from main panel)
-local function MakeDraggable(frame, handle)
-    handle = handle or frame
-    local dragging, dragInput, dragStart, startPos
-    
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            local connection
-            connection = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    if connection then connection:Disconnect() end
-                end
-            end)
-        end
-    end)
-    
-    handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X, 
-                startPos.Y.Scale, 
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-end
-
 -- Watermark Container
 local WatermarkContainer = Instance.new("Frame")
 WatermarkContainer.Name = "WatermarkContainer"
@@ -207,7 +167,7 @@ ArrowStroke.Thickness = 1
 ArrowStroke.Transparency = 1
 ArrowStroke.Parent = MenuToggleArrow
 
--- Main Control Panel Frame (Fixed position, not draggable)
+-- Main Control Panel Frame (Strictly fixed, non-draggable)
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
 MainControlPanel.Size = UDim2.new(0, 250, 0, 480)
@@ -242,7 +202,7 @@ MainTitleLabel.TextSize = 13
 MainTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 MainTitleLabel.Parent = MainTitleBar
 
--- Main Footer Bar (Bottom Name & Version)
+-- Main Footer Bar
 local MainFooterBar = Instance.new("Frame")
 MainFooterBar.Name = "MainFooterBar"
 MainFooterBar.Size = UDim2.new(1, 0, 0, 30)
@@ -286,7 +246,7 @@ end
 
 MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 
--- Keybinds Menu Window
+-- Keybinds Menu Window (Strictly fixed, non-draggable)
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
 KeybindsMenuWindow.Size = UDim2.new(0, 320, 0, 420)
@@ -296,8 +256,6 @@ KeybindsMenuWindow.BorderSizePixel = 0
 KeybindsMenuWindow.ClipsDescendants = true
 KeybindsMenuWindow.Visible = false
 KeybindsMenuWindow.Parent = ScreenGui
-
-MakeDraggable(KeybindsMenuWindow, KeybindsMenuWindow)
 
 local KbStroke = Instance.new("UIStroke")
 KbStroke.Color = Color3.fromRGB(70, 70, 70)
@@ -309,8 +267,6 @@ KbTitleBar.Size = UDim2.new(1, 0, 0, 35)
 KbTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 KbTitleBar.BorderSizePixel = 0
 KbTitleBar.Parent = KeybindsMenuWindow
-
-MakeDraggable(KeybindsMenuWindow, KbTitleBar)
 
 local KbTitle = Instance.new("TextLabel")
 KbTitle.Size = UDim2.new(1, -35, 1, 0)
@@ -487,9 +443,7 @@ for featureName, keyEnum in pairs(ScriptSense.Config.Keybinds) do
     end)
 end
 
-local activeRebindKey = nil
-
--- Populate Panel Rows with live state updates
+-- Populate Panel Rows with live state updates & TextBoxes for numerical values
 CreateControlRow(MainContainer, "wallhack: off | bind: g", function()
     ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
 end, function(btn)
@@ -611,7 +565,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
         end
         
-        -- Refresh control panel UI texts
         for _, updateCb in ipairs(controlRowUpdateCallbacks) do
             pcall(updateCb)
         end
@@ -678,47 +631,95 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- ESP Rendering Loop
+    -- ESP Rendering Loop (Box ESP, Skeleton ESP, Name ESP)
     ClearDrawings()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local char = player.Character
-            local rootPart = char:FindFirstChild("HumanoidRootPart")
-            local head = char:FindFirstChild("Head")
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if ScriptSense.Config.BoxEspEnabled or ScriptSense.Config.SkeletonEspEnabled or ScriptSense.Config.NameEspEnabled then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local char = player.Character
+                local rootPart = char:FindFirstChild("HumanoidRootPart")
+                local head = char:FindFirstChild("Head")
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
 
-            if rootPart and head and humanoid and humanoid.Health > 0 then
-                local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-                if onScreen then
-                    -- Box ESP
-                    if ScriptSense.Config.BoxEspEnabled then
-                        local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                        local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
-                        local height = math.abs(headPos.Y - legPos.Y)
-                        local width = height / 2
+                if rootPart and head and humanoid and humanoid.Health > 0 then
+                    local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                    if onScreen then
+                        -- Box ESP
+                        if ScriptSense.Config.BoxEspEnabled then
+                            local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                            local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+                            local height = math.abs(headPos.Y - legPos.Y)
+                            local width = height / 2
 
-                        local box = Instance.new("Frame")
-                        box.Size = UDim2.new(0, width, 0, height)
-                        box.Position = UDim2.new(0, rootPos.X - width/2, 0, headPos.Y)
-                        box.BackgroundTransparency = 1
-                        box.BorderSizePixel = 1
-                        box.BorderColor3 = Color3.fromRGB(255, 0, 0)
-                        box.Parent = ESPContainer
-                        table.insert(activeDrawings, box)
-                    end
+                            local box = Instance.new("Frame")
+                            box.Name = "BoxESP"
+                            box.Size = UDim2.new(0, width, 0, height)
+                            box.Position = UDim2.new(0, rootPos.X - width/2, 0, headPos.Y)
+                            box.BackgroundTransparency = 1
+                            box.BorderSizePixel = 0
+                            box.Parent = ESPContainer
 
-                    -- Name ESP
-                    if ScriptSense.Config.NameEspEnabled then
-                        local nameLabel = Instance.new("TextLabel")
-                        nameLabel.Size = UDim2.new(0, 100, 0, 20)
-                        nameLabel.Position = UDim2.new(0, rootPos.X - 50, 0, rootPos.Y - 40)
-                        nameLabel.BackgroundTransparency = 1
-                        nameLabel.Text = player.Name
-                        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        nameLabel.TextSize = 12
-                        nameLabel.Font = Enum.Font.GothamBold
-                        nameLabel.Parent = ESPContainer
-                        table.insert(activeDrawings, nameLabel)
+                            local boxStroke = Instance.new("UIStroke")
+                            boxStroke.Color = Color3.fromRGB(255, 0, 0)
+                            boxStroke.Thickness = 1
+                            boxStroke.Parent = box
+
+                            table.insert(activeDrawings, box)
+                        end
+
+                        -- Skeleton ESP
+                        if ScriptSense.Config.SkeletonEspEnabled then
+                            local function drawLine(part1, part2)
+                                if part1 and part2 then
+                                    local p1, on1 = Camera:WorldToViewportPoint(part1.Position)
+                                    local p2, on2 = Camera:WorldToViewportPoint(part2.Position)
+                                    if on1 or on2 then
+                                        local line = Instance.new("Frame")
+                                        line.Name = "SkeletonLine"
+                                        local dist = (Vector2.new(p1.X, p1.Y) - Vector2.new(p2.X, p2.Y)).Magnitude
+                                        line.Size = UDim2.new(0, dist, 0, 1)
+                                        line.Position = UDim2.new(0, (p1.X + p2.X)/2 - dist/2, 0, (p1.Y + p2.Y)/2)
+                                        line.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+                                        line.BorderSizePixel = 0
+                                        
+                                        local angle = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                                        line.Rotation = angle
+                                        line.Parent = ESPContainer
+                                        table.insert(activeDrawings, line)
+                                    end
+                                end
+                            end
+
+                            local upperTorso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+                            local lowerTorso = char:FindFirstChild("LowerTorso") or upperTorso
+                            local leftUpperArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
+                            local rightUpperArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
+                            local leftUpperLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
+                            local rightUpperLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
+
+                            if head and upperTorso then drawLine(head, upperTorso) end
+                            if upperTorso and leftUpperArm then drawLine(upperTorso, leftUpperArm) end
+                            if upperTorso and rightUpperArm then drawLine(upperTorso, rightUpperArm) end
+                            if upperTorso and lowerTorso then drawLine(upperTorso, lowerTorso) end
+                            if lowerTorso and leftUpperLeg then drawLine(lowerTorso, leftUpperLeg) end
+                            if lowerTorso and rightUpperLeg then drawLine(lowerTorso, rightUpperLeg) end
+                        end
+
+                        -- Name ESP
+                        if ScriptSense.Config.NameEspEnabled then
+                            local nameLabel = Instance.new("TextLabel")
+                            nameLabel.Name = "NameESP"
+                            nameLabel.Size = UDim2.new(0, 100, 0, 20)
+                            nameLabel.Position = UDim2.new(0, rootPos.X - 50, 0, rootPos.Y - 45)
+                            nameLabel.BackgroundTransparency = 1
+                            nameLabel.Text = player.Name
+                            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            nameLabel.TextSize = 12
+                            nameLabel.Font = Enum.Font.GothamBold
+                            nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+                            nameLabel.Parent = ESPContainer
+                            table.insert(activeDrawings, nameLabel)
+                        end
                     end
                 end
             end
