@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.6.2"
+ScriptSense.Version = "7.6.5"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -10,6 +10,7 @@ local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -80,11 +81,11 @@ local function SafeDestroy(instance)
     end
 end
 
--- Full Cleanup
+-- Full Cleanup of previous instances
 local successHui, huiContainer = pcall(function() return gethui() end)
 if successHui and huiContainer then
     for _, child in ipairs(huiContainer:GetChildren()) do
-        if child.Name == "ScriptSenseEnterpriseGUI" then
+        if child.Name == "ScriptSenseEnterpriseGUI" or child.Name == "ScriptSenseESPContainer" then
             SafeDestroy(child)
         end
     end
@@ -92,7 +93,7 @@ end
 
 pcall(function()
     for _, child in ipairs(CoreGui:GetChildren()) do
-        if child.Name == "ScriptSenseEnterpriseGUI" then
+        if child.Name == "ScriptSenseEnterpriseGUI" or child.Name == "ScriptSenseESPContainer" then
             SafeDestroy(child)
         end
     end
@@ -109,6 +110,10 @@ ScreenGui.Name = "ScriptSenseEnterpriseGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = RootGuiParent
+
+local ESPContainer = Instance.new("Folder")
+ESPContainer.Name = "ScriptSenseESPContainer"
+ESPContainer.Parent = ScreenGui
 
 local IsMobileDevice = UserInputService.TouchEnabled
 
@@ -205,7 +210,7 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 240, 0, 440)
+MainControlPanel.Size = UDim2.new(0, 250, 0, 480)
 MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
@@ -288,8 +293,8 @@ MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 -- Keybinds Menu Window
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
-KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 390)
-KeybindsMenuWindow.Position = UDim2.new(0.5, -150, 0.5, -195)
+KeybindsMenuWindow.Size = UDim2.new(0, 320, 0, 420)
+KeybindsMenuWindow.Position = UDim2.new(0.5, -160, 0.5, -210)
 KeybindsMenuWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 KeybindsMenuWindow.BorderSizePixel = 0
 KeybindsMenuWindow.ClipsDescendants = true
@@ -316,7 +321,7 @@ KbTitle.Size = UDim2.new(1, -35, 1, 0)
 KbTitle.Position = UDim2.new(0, 12, 0, 0)
 KbTitle.BackgroundTransparency = 1
 KbTitle.RichText = true
-KbTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font> — KEYBIND MANAGER'
+KbTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> — KEYBIND MANAGER'
 KbTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 KbTitle.TextSize = 13
 KbTitle.Font = Enum.Font.GothamBold
@@ -352,10 +357,8 @@ KbListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 KbListLayout.Padding = UDim.new(0, 4)
 KbListLayout.Parent = KbContainer
 
-local PopulateKeybindsDisplay
 local ToggleKeybindsMenu = function()
     KeybindsMenuWindow.Visible = not KeybindsMenuWindow.Visible
-    if KeybindsMenuWindow.Visible then PopulateKeybindsDisplay() end
 end
 
 local controlRowUpdateCallbacks = {}
@@ -549,12 +552,28 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
     return rowFrame
 end
 
-local activeRebindKey = nil
 local function GetKeyName(keyCode)
     local name = keyCode.Name
     if name == "Backquote" then return "`" end
     return string.lower(name)
 end
+
+-- Create Keybind manager rows inside KeybindsMenuWindow
+for featureName, keyEnum in pairs(ScriptSense.Config.Keybinds) do
+    CreateControlRow(KbContainer, featureName .. " bind: " .. GetKeyName(keyEnum), function(btn)
+        btn.Text = "  [press any key for " .. string.lower(featureName) .. "]..."
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                ScriptSense.Config.Keybinds[featureName] = input.KeyCode
+                btn.Text = "  " .. string.lower(featureName) .. " bind: " .. GetKeyName(input.KeyCode)
+                if connection then connection:Disconnect() end
+            end
+        end)
+    end)
+end
+
+local activeRebindKey = nil
 
 -- Populate Panel Rows with live state updates
 CreateControlRow(MainContainer, "wallhack: off | bind: g", function()
@@ -640,220 +659,13 @@ CreateSliderRow(MainContainer, "anti aim | angle", 0, 360, ScriptSense.Config.An
     ScriptSense.Config.AntiAimHeadAngle = val
 end)
 
--- Teleport Window
-local TeleportWindow = Instance.new("Frame")
-TeleportWindow.Name = "TeleportWindow"
-TeleportWindow.Size = UDim2.new(0, 300, 0, 360)
-TeleportWindow.Position = UDim2.new(0.5, -150, 0.5, -180)
-TeleportWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-TeleportWindow.BorderSizePixel = 0
-TeleportWindow.ClipsDescendants = true
-TeleportWindow.Visible = false
-TeleportWindow.Parent = ScreenGui
-
-MakeDraggable(TeleportWindow, TeleportWindow)
-
-local TpStroke = Instance.new("UIStroke")
-TpStroke.Color = Color3.fromRGB(70, 70, 70)
-TpStroke.Thickness = 2
-TpStroke.Parent = TeleportWindow
-
-local TpTitleBar = Instance.new("Frame")
-TpTitleBar.Size = UDim2.new(1, 0, 0, 35)
-TpTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TpTitleBar.BorderSizePixel = 0
-TpTitleBar.Parent = TeleportWindow
-
-MakeDraggable(TeleportWindow, TpTitleBar)
-
-local TpTitle = Instance.new("TextLabel")
-TpTitle.Size = UDim2.new(1, -35, 1, 0)
-TpTitle.Position = UDim2.new(0, 12, 0, 0)
-TpTitle.BackgroundTransparency = 1
-TpTitle.RichText = true
-TpTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font> — TELEPORT MENU'
-TpTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-TpTitle.Font = Enum.Font.GothamBold
-TpTitle.TextSize = 13
-TpTitle.TextXAlignment = Enum.TextXAlignment.Left
-TpTitle.Parent = TpTitleBar
-
-local TpCloseBtn = Instance.new("TextButton")
-TpCloseBtn.Size = UDim2.new(0, 35, 0, 35)
-TpCloseBtn.Position = UDim2.new(1, -35, 0, 0)
-TpCloseBtn.BackgroundTransparency = 1
-TpCloseBtn.Text = "✕"
-TpCloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-TpCloseBtn.Font = Enum.Font.GothamBold
-TpCloseBtn.TextSize = 14
-TpCloseBtn.Parent = TpTitleBar
-
-TpCloseBtn.MouseButton1Click:Connect(function()
-    TeleportWindow.Visible = false
-end)
-
-local TpScrollFrame = Instance.new("ScrollingFrame")
-TpScrollFrame.Size = UDim2.new(1, 0, 1, -35)
-TpScrollFrame.Position = UDim2.new(0, 0, 0, 35)
-TpScrollFrame.BackgroundTransparency = 1
-TpScrollFrame.BorderSizePixel = 0
-TpScrollFrame.ScrollBarThickness = 6
-TpScrollFrame.Active = true
-TpScrollFrame.Parent = TeleportWindow
-
-local TpLayout = Instance.new("UIListLayout")
-TpLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TpLayout.Parent = TpScrollFrame
-
-CreateControlRow(MainContainer, "teleport menu", function()
-    TeleportWindow.Visible = not TeleportWindow.Visible
-end)
-
--- Multi Fling Window
-local FlingWindow = Instance.new("Frame")
-FlingWindow.Name = "FlingWindow"
-FlingWindow.Size = UDim2.new(0, 300, 0, 390)
-FlingWindow.Position = UDim2.new(0.5, -150, 0.5, -195)
-FlingWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-FlingWindow.BorderSizePixel = 0
-FlingWindow.ClipsDescendants = true
-FlingWindow.Visible = false
-FlingWindow.Parent = ScreenGui
-
-MakeDraggable(FlingWindow, FlingWindow)
-
-local FlingStroke = Instance.new("UIStroke")
-FlingStroke.Color = Color3.fromRGB(70, 70, 70)
-FlingStroke.Thickness = 2
-FlingStroke.Parent = FlingWindow
-
-local FlingTitleBar = Instance.new("Frame")
-FlingTitleBar.Size = UDim2.new(1, 0, 0, 35)
-FlingTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-FlingTitleBar.BorderSizePixel = 0
-FlingTitleBar.Parent = FlingWindow
-
-MakeDraggable(FlingWindow, FlingTitleBar)
-
-local FlingTitle = Instance.new("TextLabel")
-FlingTitle.Size = UDim2.new(1, -35, 1, 0)
-FlingTitle.Position = UDim2.new(0, 12, 0, 0)
-FlingTitle.BackgroundTransparency = 1
-FlingTitle.RichText = true
-FlingTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font> — MULTI FLING'
-FlingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlingTitle.Font = Enum.Font.GothamBold
-FlingTitle.TextSize = 13
-FlingTitle.TextXAlignment = Enum.TextXAlignment.Left
-FlingTitle.Parent = FlingTitleBar
-
-local FlingCloseBtn = Instance.new("TextButton")
-FlingCloseBtn.Size = UDim2.new(0, 35, 0, 35)
-FlingCloseBtn.Position = UDim2.new(1, -35, 0, 0)
-FlingCloseBtn.BackgroundTransparency = 1
-FlingCloseBtn.Text = "✕"
-FlingCloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-FlingCloseBtn.Font = Enum.Font.GothamBold
-FlingCloseBtn.TextSize = 14
-FlingCloseBtn.Parent = FlingTitleBar
-
-FlingCloseBtn.MouseButton1Click:Connect(function()
-    FlingWindow.Visible = false
-end)
-
-local FlingStatusLabel = Instance.new("TextLabel")
-FlingStatusLabel.Position = UDim2.new(0, 10, 0, 45)
-FlingStatusLabel.Size = UDim2.new(1, -20, 0, 25)
-FlingStatusLabel.BackgroundTransparency = 1
-FlingStatusLabel.Text = "Select targets to fling"
-FlingStatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlingStatusLabel.Font = Enum.Font.Gotham
-FlingStatusLabel.TextSize = 13
-FlingStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-FlingStatusLabel.Parent = FlingWindow
-
-local SelectionFrame = Instance.new("Frame")
-SelectionFrame.Position = UDim2.new(0, 10, 0, 75)
-SelectionFrame.Size = UDim2.new(1, -20, 0, 190)
-SelectionFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-SelectionFrame.BorderSizePixel = 0
-SelectionFrame.Parent = FlingWindow
-
-local SelStroke = Instance.new("UIStroke")
-SelStroke.Color = Color3.fromRGB(45, 45, 45)
-SelStroke.Thickness = 1
-SelStroke.Parent = SelectionFrame
-
-local PlayerScrollFrame = Instance.new("ScrollingFrame")
-PlayerScrollFrame.Position = UDim2.new(0, 5, 0, 5)
-PlayerScrollFrame.Size = UDim2.new(1, -10, 1, -10)
-PlayerScrollFrame.BackgroundTransparency = 1
-PlayerScrollFrame.BorderSizePixel = 0
-PlayerScrollFrame.ScrollBarThickness = 4
-PlayerScrollFrame.Active = true
-PlayerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-PlayerScrollFrame.Parent = SelectionFrame
-
-local PlayerListLayout = Instance.new("UIListLayout")
-PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-PlayerListLayout.Padding = UDim.new(0, 4)
-PlayerListLayout.Parent = PlayerScrollFrame
-
-local FlingStartButton = Instance.new("TextButton")
-FlingStartButton.Position = UDim2.new(0, 10, 0, 275)
-FlingStartButton.Size = UDim2.new(0.5, -15, 0, 35)
-FlingStartButton.BackgroundColor3 = Color3.fromRGB(0, 150, 60)
-FlingStartButton.BorderSizePixel = 0
-FlingStartButton.Text = "START FLING"
-FlingStartButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlingStartButton.Font = Enum.Font.GothamBold
-FlingStartButton.TextSize = 13
-FlingStartButton.Parent = FlingWindow
-
-local FlingStopButton = Instance.new("TextButton")
-FlingStopButton.Position = UDim2.new(0.5, 5, 0, 275)
-FlingStopButton.Size = UDim2.new(0.5, -15, 0, 35)
-FlingStopButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-FlingStopButton.BorderSizePixel = 0
-FlingStopButton.Text = "STOP FLING"
-FlingStopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlingStopButton.Font = Enum.Font.GothamBold
-FlingStopButton.TextSize = 13
-FlingStopButton.Parent = FlingWindow
-
-local SelectAllButton = Instance.new("TextButton")
-SelectAllButton.Position = UDim2.new(0, 10, 0, 320)
-SelectAllButton.Size = UDim2.new(0.5, -15, 0, 30)
-SelectAllButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-SelectAllButton.BorderSizePixel = 0
-SelectAllButton.Text = "SELECT ALL"
-SelectAllButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-SelectAllButton.Font = Enum.Font.GothamMedium
-SelectAllButton.TextSize = 12
-SelectAllButton.Parent = FlingWindow
-
-local DeselectAllButton = Instance.new("TextButton")
-DeselectAllButton.Position = UDim2.new(0.5, 5, 0, 320)
-DeselectAllButton.Size = UDim2.new(0.5, -15, 0, 30)
-DeselectAllButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-DeselectAllButton.BorderSizePixel = 0
-DeselectAllButton.Text = "DESELECT ALL"
-DeselectAllButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-DeselectAllButton.Font = Enum.Font.GothamMedium
-DeselectAllButton.TextSize = 12
-DeselectAllButton.Parent = FlingWindow
-
-CreateControlRow(MainContainer, "multi fling menu", function()
-    FlingWindow.Visible = not FlingWindow.Visible
-end)
-
-CreateControlRow(MainContainer, "keybinds menu | bind: `", function()
+CreateControlRow(MainContainer, "keybinds manager", function()
     ToggleKeybindsMenu()
 end)
 
--- Global Keybinds Listener Integration
+-- Robust Global Keybinds Listener (FIXED: Supports all layouts and avoids strict gameProcessed lockouts)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    if UserInputService:GetFocusedTextBox() then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
         local keyCode = input.KeyCode
         
@@ -892,12 +704,120 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- Fully Implemented Cheat Loops & Mechanics (ESP, Aimbot, Fly, AntiAim, Speedhack, Godmode)
+local activeDrawings = {}
+
+local function ClearDrawings()
+    for _, drawing in pairs(activeDrawings) do
+        SafeDestroy(drawing)
+    end
+    activeDrawings = {}
+end
+
+RunService.RenderStepped:Connect(function(dt)
+    -- Speedhack implementation
+    if ScriptSense.Config.SpeedhackEnabled then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = ScriptSense.Config.SpeedhackSpeed
+        end
+    end
+
+    -- Anti-Aim Spinbot implementation
+    if ScriptSense.Config.AntiAimEnabled then
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
+            root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.SpinSpeed), 0)
+        end
+    end
+
+    -- Aimbot Logic
+    if ScriptSense.Config.AimbotEnabled and not IsRobloxMenuOpen() then
+        local closestPlayer = nil
+        local shortestDist = ScriptSense.Config.AimbotFovRadius
+        local mousePos = UserInputService:GetMouseLocation()
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local rootPart = player.Character.HumanoidRootPart
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if dist < shortestDist then
+                            shortestDist = dist
+                            closestPlayer = player
+                        end
+                    end
+                end
+            end
+        end
+
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+            local targetHead = closestPlayer.Character.Head
+            local targetPos = targetHead.Position
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), 1 / ScriptSense.Config.AimbotSmoothness)
+        end
+    end
+
+    -- ESP Rendering Loop
+    ClearDrawings()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local char = player.Character
+            local rootPart = char:FindFirstChild("HumanoidRootPart")
+            local head = char:FindFirstChild("Head")
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+
+            if rootPart and head and humanoid and humanoid.Health > 0 then
+                local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+                if onScreen then
+                    -- Box ESP
+                    if ScriptSense.Config.BoxEspEnabled then
+                        local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                        local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+                        local height = math.abs(headPos.Y - legPos.Y)
+                        local width = height / 2
+
+                        local box = Instance.new("Frame")
+                        box.Size = UDim2.new(0, width, 0, height)
+                        box.Position = UDim2.new(0, rootPos.X - width/2, 0, headPos.Y)
+                        box.BackgroundTransparency = 1
+                        box.BorderSizePixel = 1
+                        box.BorderColor3 = Color3.fromRGB(255, 0, 0)
+                        box.Parent = ESPContainer
+                        table.insert(activeDrawings, box)
+                    end
+
+                    -- Name ESP
+                    if ScriptSense.Config.NameEspEnabled then
+                        local nameLabel = Instance.new("TextLabel")
+                        nameLabel.Size = UDim2.new(0, 100, 0, 20)
+                        nameLabel.Position = UDim2.new(0, rootPos.X - 50, 0, rootPos.Y - 40)
+                        nameLabel.BackgroundTransparency = 1
+                        nameLabel.Text = player.Name
+                        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        nameLabel.TextSize = 12
+                        nameLabel.Font = Enum.Font.GothamBold
+                        nameLabel.Parent = ESPContainer
+                        table.insert(activeDrawings, nameLabel)
+                    end
+                end
+            end
+        end
+    end
+end)
+
 -- Update MainContainer CanvasSize automatically
 MainListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     MainContainer.CanvasSize = UDim2.new(0, 0, 0, MainListLayout.AbsoluteContentSize.Y + 10)
 end)
 
--- Intro Sequence (2 seconds appearance duration) with Version Integration
+-- Intro Sequence with Version Integration
 task.spawn(function()
     local fullText = "SCRIPT SENSE v" .. ScriptSense.Version
     local totalChars = #fullText
