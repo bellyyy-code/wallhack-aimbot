@@ -234,13 +234,6 @@ KbListLayout.Parent = KbContainer
 
 local PopulateKeybindsDisplay
 
-local function ToggleKeybindsMenu()
-    KeybindsMenuWindow.Visible = not KeybindsMenuWindow.Visible
-    if KeybindsMenuWindow.Visible then
-        PopulateKeybindsDisplay()
-    end
-end
-
 local UIComponentRegistry = {}
 local controlRowFrames = {}
 
@@ -297,37 +290,27 @@ local function GetKeyName(keyCode)
     return string.lower(name)
 end
 
--- DropKick (Kick Fling) toggle function
-getgenv().DropKickActive = false
-
+-- Native DropKick / KickFling Engine without external GUI
+local kickFlingLoop = nil
 local function ToggleKickFling()
     ScriptSense.Config.KickFlingEnabled = not ScriptSense.Config.KickFlingEnabled
     if ScriptSense.Config.KickFlingEnabled then
-        getgenv().DropKickActive = true
-        pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "KickFling",
-                Text = "DropKick enabled.",
-                Duration = 4,
-            })
-        end)
-        task.spawn(function()
-            local success, err = pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/universal/DropKick.lua"))()
+        if not kickFlingLoop then
+            kickFlingLoop = task.spawn(function()
+                while ScriptSense.Config.KickFlingEnabled do
+                    RunService.Heartbeat:Wait()
+                    local character = LocalPlayer.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local currentVel = hrp.Velocity
+                        hrp.Velocity = currentVel * 4000 + Vector3.new(0, 6000, 0)
+                        RunService.RenderStepped:Wait()
+                        hrp.Velocity = currentVel
+                    end
+                end
+                kickFlingLoop = nil
             end)
-            if not success then
-                warn("❌ Failed to load DropKick script: " .. tostring(err))
-            end
-        end)
-    else
-        getgenv().DropKickActive = false
-        pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "KickFling",
-                Text = "DropKick disabled.",
-                Duration = 4,
-            })
-        end)
+        end
     end
 end
 
