@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "6.7.1"
+ScriptSense.Version = "6.8.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -168,7 +168,7 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 240, 0, 498)
+MainControlPanel.Size = UDim2.new(0, 240, 0, 540)
 MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
@@ -355,7 +355,7 @@ end)
 UIComponentRegistry["skeleton"] = skeletonRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, boxEspRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "white box esp: off | bind: b", function()
+local _, boxEspRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "box esp: off | bind: b", function()
     ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
 end)
 UIComponentRegistry["boxesp"] = boxEspRowBtn
@@ -401,6 +401,82 @@ CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
 end)
 verticalOffset = verticalOffset + 42
 
+-- Fling GUI Window
+local FlingWindow = Instance.new("Frame")
+FlingWindow.Name = "FlingWindow"
+FlingWindow.Size = UDim2.new(0, 300, 0, 220)
+FlingWindow.Position = UDim2.new(0.5, -150, 0.5, -110)
+FlingWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+FlingWindow.BorderSizePixel = 0
+FlingWindow.Visible = false
+FlingWindow.Parent = ScreenGui
+
+local FlingStroke = Instance.new("UIStroke")
+FlingStroke.Color = Color3.fromRGB(70, 70, 70)
+FlingStroke.Thickness = 2
+FlingStroke.Parent = FlingWindow
+
+local FlingTitle = Instance.new("TextLabel")
+FlingTitle.Size = UDim2.new(1, 0, 0, 40)
+FlingTitle.BackgroundTransparency = 1
+FlingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlingTitle.TextSize = 14
+FlingTitle.Font = Enum.Font.GothamBold
+FlingTitle.Text = "  FLING GUI & CONTROLS"
+FlingTitle.TextXAlignment = Enum.TextXAlignment.Left
+FlingTitle.Parent = FlingWindow
+
+local FlingContainer = Instance.new("Frame")
+FlingContainer.Size = UDim2.new(1, 0, 1, -40)
+FlingContainer.Position = UDim2.new(0, 0, 0, 40)
+FlingContainer.BackgroundTransparency = 1
+FlingContainer.Parent = FlingWindow
+
+local FlingListLayout = Instance.new("UIListLayout")
+FlingListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+FlingListLayout.Padding = UDim.new(0, 6)
+FlingListLayout.Parent = FlingContainer
+
+local fBtn1 = Instance.new("TextButton")
+fBtn1.Size = UDim2.new(1, -20, 0, 40)
+fBtn1.Position = UDim2.new(0, 10, 0, 10)
+fBtn1.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+fBtn1.TextColor3 = Color3.fromRGB(255, 255, 255)
+fBtn1.TextSize = 13
+fBtn1.Font = Enum.Font.GothamMedium
+fBtn1.Text = "  Toggle TouchFling (Bind: K)"
+fBtn1.TextXAlignment = Enum.TextXAlignment.Left
+fBtn1.Parent = FlingContainer
+
+fBtn1.MouseButton1Click:Connect(function()
+    ScriptSense.Config.TouchFlingEnabled = not ScriptSense.Config.TouchFlingEnabled
+    if ScriptSense.Config.TouchFlingEnabled then
+        startFlingThread()
+    end
+    fBtn1.Text = "  TouchFling: " .. (ScriptSense.Config.TouchFlingEnabled and "ON" or "OFF")
+end)
+
+local fBtn2 = Instance.new("TextButton")
+fBtn2.Size = UDim2.new(1, -20, 0, 40)
+fBtn2.Position = UDim2.new(0, 10, 0, 60)
+fBtn2.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+fBtn2.TextColor3 = Color3.fromRGB(255, 255, 255)
+fBtn2.TextSize = 13
+fBtn2.Font = Enum.Font.GothamMedium
+fBtn2.Text = "  Toggle KickFling / DropKick (Bind: Z)"
+fBtn2.TextXAlignment = Enum.TextXAlignment.Left
+fBtn2.Parent = FlingContainer
+
+fBtn2.MouseButton1Click:Connect(function()
+    ToggleKickFling()
+    fBtn2.Text = "  KickFling: " .. (getgenv().DropKickActive and "ON" or "OFF")
+end)
+
+CreateControlRow(MainControlPanel, verticalOffset, "fling gui menu", function()
+    FlingWindow.Visible = not FlingWindow.Visible
+end)
+verticalOffset = verticalOffset + 42
+
 local _, menuToggleRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
     ToggleKeybindsMenu()
 end)
@@ -409,7 +485,7 @@ verticalOffset = verticalOffset + 42
 
 -- Intro Sequence (2s Typewriter)
 task.spawn(function()
-    local fullText = "SCRIPT SENSE [v6.7.0]"
+    local fullText = "SCRIPT SENSE [v6.8.0]"
     local totalChars = #fullText
     local totalDuration = 2.0
     local charDelay = totalDuration / totalChars
@@ -424,7 +500,7 @@ task.spawn(function()
         end
         
         if count > 12 then
-            local spaceAndVer = string.sub(" [v6.7.0]", 1, count - 12)
+            local spaceAndVer = string.sub(" [v6.8.0]", 1, count - 12)
             res = res .. '<font color="#AAAAAA">' .. spaceAndVer .. '</font>'
         end
         
@@ -435,7 +511,7 @@ task.spawn(function()
         WatermarkLabel.Text = getPartialText(i)
         task.wait(charDelay)
     end
-    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">[v6.7.0]</font>'
+    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">[v6.8.0]</font>'
 
     local currentAbsPos = WatermarkContainer.AbsolutePosition
     WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
@@ -512,7 +588,7 @@ PopulateKeybindsDisplay = function()
         {"Godmode", "Godmode", ScriptSense.Config.Keybinds.Godmode},
         {"Fly", "Fly", ScriptSense.Config.Keybinds.Fly},
         {"Skeleton ESP", "Skeleton", ScriptSense.Config.Keybinds.Skeleton},
-        {"White Box ESP", "BoxEsp", ScriptSense.Config.Keybinds.BoxEsp},
+        {"Box ESP", "BoxEsp", ScriptSense.Config.Keybinds.BoxEsp},
         {"Anti-Aim", "AntiAim", ScriptSense.Config.Keybinds.AntiAim},
         {"TouchFling", "TouchFling", ScriptSense.Config.Keybinds.TouchFling},
         {"Menu Toggle", "MenuToggle", ScriptSense.Config.Keybinds.MenuToggle},
@@ -788,7 +864,7 @@ Players.PlayerRemoving:Connect(function(playerObj)
     PurgeDrawingSkeleton(playerObj)
 end)
 
--- 5. Native Drawing White Box ESP Rendering Engine (Precise Bounding Box)
+-- 5. Native Drawing Box ESP Rendering Engine (Precise Bounding Box)
 local DrawingBoxRegistry = {}
 
 local function PurgeDrawingBox(playerTarget)
@@ -953,5 +1029,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-print("[ScriptSense v6.7.0]: Fully Loaded & Initialized Successfully.")
+print("[ScriptSense v6.8.0]: Fully Loaded & Initialized Successfully.")
 return ScriptSense
