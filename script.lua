@@ -424,7 +424,7 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onValueChanged)
     stroke.Parent = rowFrame
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Size = UDim2.new(0.65, 0, 1, 0)
     label.Position = UDim2.new(0, 12, 0, 0)
     label.BackgroundTransparency = 1
     label.TextTransparency = 1
@@ -534,7 +534,7 @@ end, function(btn)
     btn.Text = "  speedhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
 end)
 
-CreateTextBoxRow(MainContainer, "speed value", ScriptSense.Config.SpeedhackSpeed, function(val)
+CreateTextBoxRow(MainContainer, "speedhack | speed (textbox)", ScriptSense.Config.SpeedhackSpeed, function(val)
     ScriptSense.Config.SpeedhackSpeed = val
 end)
 
@@ -545,11 +545,11 @@ end, function(btn)
     btn.Text = "  anti-aim: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.AntiAim))
 end)
 
-CreateTextBoxRow(MainContainer, "spin speed", ScriptSense.Config.SpinSpeed, function(val)
+CreateTextBoxRow(MainContainer, "anti aim | speed (textbox)", ScriptSense.Config.SpinSpeed, function(val)
     ScriptSense.Config.SpinSpeed = val
 end)
 
-CreateTextBoxRow(MainContainer, "head angle", ScriptSense.Config.AntiAimHeadAngle, function(val)
+CreateTextBoxRow(MainContainer, "anti aim | angle (textbox)", ScriptSense.Config.AntiAimHeadAngle, function(val)
     ScriptSense.Config.AntiAimHeadAngle = val
 end)
 
@@ -769,7 +769,7 @@ MainListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function(
     MainContainer.CanvasSize = UDim2.new(0, 0, 0, MainListLayout.AbsoluteContentSize.Y + 10)
 end)
 
--- Intro Sequence
+-- Intro Sequence (2 seconds appearance duration)
 task.spawn(function()
     local fullText = "SCRIPT SENSE"
     local totalChars = #fullText
@@ -1577,5 +1577,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     RefreshControlRowTexts()
 end)
 
-print("[ScriptSense v7.6.0]: Main script updated with version branding footer.")
+print("[ScriptSense v7.6.0]: Updated with explicit setting descriptions.")
 return ScriptSense
