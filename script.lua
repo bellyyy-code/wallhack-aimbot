@@ -187,11 +187,11 @@ ArrowStroke.Color = Color3.fromRGB(60, 60, 60)
 ArrowStroke.Thickness = 1
 ArrowStroke.Parent = MenuToggleArrow
 
--- Main Control Panel Frame (Starts small & centered)
+-- Main Control Panel Frame (Starts as just the title bar in the center)
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 0, 0, 0)
-MainControlPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainControlPanel.Size = UDim2.new(0, 260, 0, 35)
+MainControlPanel.Position = UDim2.new(0.5, -130, 0.5, -17.5)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
 MainControlPanel.ClipsDescendants = true
@@ -258,51 +258,116 @@ MainListLayout.Parent = MainContainer
 
 local isPanelVisible = true
 
--- INTRO ANIMATION & 2-SECOND TYPEWRITER EFFECT
-task.spawn(function()
-    -- Шаг 1: Плавное открытие панели по центру
-    local appearTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 260, 0, 480),
-        Position = UDim2.new(0.5, -130, 0.5, -240)
-    })
-    appearTween:Play()
+local controlRowUpdateCallbacks = {}
+local controlRowFrames = {}
 
-    -- Шаг 2: Печать текста по 1 букве ровно за 2 секунды
-    local rawString = "SCRIPT SENSE v" .. ScriptSense.Version
-    local interval = 2 / #rawString
+local function CreateControlRow(parent, initialText, callback, updateCallback)
+    local rowFrame = Instance.new("Frame")
+    rowFrame.Size = UDim2.new(1, 0, 0, 38)
+    rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+    rowFrame.BackgroundTransparency = 0.2
+    rowFrame.BorderSizePixel = 0
+    rowFrame.Visible = false -- Скрыто до поэтапной загрузки гуи
+    rowFrame.Parent = parent
 
-    for i = 1, #rawString do
-        local currentSub = string.sub(rawString, 1, i)
-        local formatted = ""
-        if i <= 6 then
-            formatted = '<font color="#FFFFFF">' .. currentSub .. '</font>'
-        elseif i <= 12 then
-            local subSense = string.sub(currentSub, 8)
-            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">' .. subSense .. '</font>'
-        else
-            local subVer = string.sub(currentSub, 14)
-            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">' .. subVer .. '</font>'
-        end
-        MainTitleLabel.Text = formatted
-        task.wait(interval)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(45, 45, 45)
+    stroke.Thickness = 1
+    stroke.Parent = rowFrame
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.TextColor3 = Color3.fromRGB(230, 230, 230)
+    button.TextSize = 13
+    button.Font = Enum.Font.GothamMedium
+    button.Text = initialText
+    button.TextXAlignment = Enum.TextXAlignment.Left
+    button.Parent = rowFrame
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.Parent = button
+
+    if callback then
+        button.MouseButton1Click:Connect(function()
+            pcall(callback)
+            if updateCallback then updateCallback(button) end
+        end)
     end
 
-    appearTween.Completed:Wait()
+    if updateCallback then
+        table.insert(controlRowUpdateCallbacks, function()
+            updateCallback(button)
+        end)
+    end
 
-    -- Шаг 3: Плавный уход влево на рабочую позицию
-    local slideTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0, 20, 0, 65)
-    })
-    slideTween:Play()
-end)
-
-local function ToggleMenuVisibility()
-    isPanelVisible = not isPanelVisible
-    MainControlPanel.Visible = isPanelVisible
-    MenuToggleArrow.Text = isPanelVisible and "▲" or "▼"
+    table.insert(controlRowFrames, rowFrame)
+    return rowFrame, button
 end
 
-MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
+local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
+    local rowFrame = Instance.new("Frame")
+    rowFrame.Size = UDim2.new(1, 0, 0, 38)
+    rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+    rowFrame.BackgroundTransparency = 0.2
+    rowFrame.BorderSizePixel = 0
+    rowFrame.Visible = false -- Скрыто до поэтапной загрузки гуи
+    rowFrame.Parent = parent
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(45, 45, 45)
+    stroke.Thickness = 1
+    stroke.Parent = rowFrame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(230, 230, 230)
+    label.TextSize = 13
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = "  " .. labelText
+    label.Parent = rowFrame
+
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0, 70, 0, 24)
+    textBox.Position = UDim2.new(1, -82, 0.5, -12)
+    textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    textBox.BackgroundTransparency = 0
+    textBox.BorderSizePixel = 0
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.TextSize = 12
+    textBox.Font = Enum.Font.GothamMedium
+    textBox.Text = tostring(initialValue)
+    textBox.ClearTextOnFocus = false
+    textBox.Parent = rowFrame
+
+    local tbStroke = Instance.new("UIStroke")
+    tbStroke.Color = Color3.fromRGB(50, 50, 50)
+    tbStroke.Thickness = 1
+    tbStroke.Parent = textBox
+
+    textBox.FocusLost:Connect(function(enterPressed)
+        local num = tonumber(textBox.Text)
+        if num then
+            onTextChanged(num)
+            textBox.Text = tostring(num)
+        else
+            onTextChanged(textBox.Text)
+        end
+    end)
+
+    table.insert(controlRowFrames, rowFrame)
+    return rowFrame
+end
+
+local function GetKeyName(keyCode)
+    local name = keyCode.Name
+    if name == "Backquote" then return "`" end
+    return string.lower(name)
+end
 
 -- Keybinds Menu Window
 local KeybindsMenuWindow = Instance.new("Frame")
@@ -469,117 +534,6 @@ FlingActionButton.MouseButton1Click:Connect(function()
     end
 end)
 
-local controlRowUpdateCallbacks = {}
-local controlRowFrames = {}
-
-local function CreateControlRow(parent, initialText, callback, updateCallback)
-    local rowFrame = Instance.new("Frame")
-    rowFrame.Size = UDim2.new(1, 0, 0, 38)
-    rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    rowFrame.BackgroundTransparency = 0.2
-    rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = true
-    rowFrame.Parent = parent
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(45, 45, 45)
-    stroke.Thickness = 1
-    stroke.Parent = rowFrame
-
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 1, 0)
-    button.BackgroundTransparency = 1
-    button.TextColor3 = Color3.fromRGB(230, 230, 230)
-    button.TextSize = 13
-    button.Font = Enum.Font.GothamMedium
-    button.Text = initialText
-    button.TextXAlignment = Enum.TextXAlignment.Left
-    button.Parent = rowFrame
-
-    local padding = Instance.new("UIPadding")
-    padding.PaddingLeft = UDim.new(0, 12)
-    padding.Parent = button
-
-    if callback then
-        button.MouseButton1Click:Connect(function()
-            pcall(callback)
-            if updateCallback then updateCallback(button) end
-        end)
-    end
-
-    if updateCallback then
-        table.insert(controlRowUpdateCallbacks, function()
-            updateCallback(button)
-        end)
-    end
-
-    table.insert(controlRowFrames, rowFrame)
-    return rowFrame, button
-end
-
-local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
-    local rowFrame = Instance.new("Frame")
-    rowFrame.Size = UDim2.new(1, 0, 0, 38)
-    rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    rowFrame.BackgroundTransparency = 0.2
-    rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = true
-    rowFrame.Parent = parent
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(45, 45, 45)
-    stroke.Thickness = 1
-    stroke.Parent = rowFrame
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Position = UDim2.new(0, 12, 0, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(230, 230, 230)
-    label.TextSize = 13
-    label.Font = Enum.Font.GothamMedium
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = "  " .. labelText
-    label.Parent = rowFrame
-
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0, 70, 0, 24)
-    textBox.Position = UDim2.new(1, -82, 0.5, -12)
-    textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    textBox.BackgroundTransparency = 0
-    textBox.BorderSizePixel = 0
-    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textBox.TextSize = 12
-    textBox.Font = Enum.Font.GothamMedium
-    textBox.Text = tostring(initialValue)
-    textBox.ClearTextOnFocus = false
-    textBox.Parent = rowFrame
-
-    local tbStroke = Instance.new("UIStroke")
-    tbStroke.Color = Color3.fromRGB(50, 50, 50)
-    tbStroke.Thickness = 1
-    tbStroke.Parent = textBox
-
-    textBox.FocusLost:Connect(function(enterPressed)
-        local num = tonumber(textBox.Text)
-        if num then
-            onTextChanged(num)
-            textBox.Text = tostring(num)
-        else
-            onTextChanged(textBox.Text)
-        end
-    end)
-
-    table.insert(controlRowFrames, rowFrame)
-    return rowFrame
-end
-
-local function GetKeyName(keyCode)
-    local name = keyCode.Name
-    if name == "Backquote" then return "`" end
-    return string.lower(name)
-end
-
 -- Create Keybind manager rows inside KeybindsMenuWindow
 for featureName, keyEnum in pairs(ScriptSense.Config.Keybinds) do
     CreateControlRow(KbContainer, featureName .. " bind: " .. GetKeyName(keyEnum), function(btn)
@@ -595,7 +549,7 @@ for featureName, keyEnum in pairs(ScriptSense.Config.Keybinds) do
     end)
 end
 
--- Populate Panel Rows
+-- Populate Main Panel Rows
 CreateControlRow(MainContainer, "wallhack: off | bind: g", function()
     ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
 end, function(btn)
@@ -704,6 +658,60 @@ end)
 CreateControlRow(MainContainer, "keybinds manager", function()
     ToggleKeybindsMenu()
 end)
+
+-- INTRO ANIMATION & 2-SECOND TYPEWRITER + 1.5s PAUSE + SEQUENTIAL GUI LOAD
+task.spawn(function()
+    -- Шаг 1: Печатаем название по 1 букве ровно за 2 секунды в центре (пока панель размером только с шапку)
+    local rawString = "SCRIPT SENSE v" .. ScriptSense.Version
+    local interval = 2 / #rawString
+
+    for i = 1, #rawString do
+        local currentSub = string.sub(rawString, 1, i)
+        local formatted = ""
+        if i <= 6 then
+            formatted = '<font color="#FFFFFF">' .. currentSub .. '</font>'
+        elseif i <= 12 then
+            local subSense = string.sub(currentSub, 8)
+            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">' .. subSense .. '</font>'
+        else
+            local subVer = string.sub(currentSub, 14)
+            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">' .. subVer .. '</font>'
+        end
+        MainTitleLabel.Text = formatted
+        task.wait(interval)
+    end
+
+    -- Шаг 2: Перемещение названия на свое место в левый верхний угол
+    local slideTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 20, 0, 65)
+    })
+    slideTween:Play()
+    slideTween.Completed:Wait()
+
+    -- Шаг 3: Тайминг 1.5 секунды
+    task.wait(1.5)
+
+    -- Шаг 4: Загрузка главного гуи (плавное раскрытие панели на всю высоту)
+    local expandTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 260, 0, 480)
+    })
+    expandTween:Play()
+    expandTween.Completed:Wait()
+
+    -- Шаг 5: Появление элементов меню по очереди (каждая штука)
+    for _, row in ipairs(controlRowFrames) do
+        row.Visible = true
+        task.wait(0.04) -- Плавный каскадный тайпврайтер для элементов гуи
+    end
+end)
+
+local function ToggleMenuVisibility()
+    isPanelVisible = not isPanelVisible
+    MainControlPanel.Visible = isPanelVisible
+    MenuToggleArrow.Text = isPanelVisible and "▲" or "▼"
+end
+
+MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 
 -- Global Keybinds Listener
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
