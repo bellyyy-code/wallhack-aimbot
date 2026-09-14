@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.7.1"
+ScriptSense.Version = "7.6.7"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -86,7 +86,7 @@ end
 local successHui, huiContainer = pcall(function() return gethui() end)
 if successHui and huiContainer then
     for _, child in ipairs(huiContainer:GetChildren()) do
-        if child.Name == "ScriptSenseEnterpriseGUI" or child.Name == "ScriptSenseESPContainer" then
+        if child.Name == "KilasikScriptSenseGUI" or child.Name == "KilasikESPContainer" then
             SafeDestroy(child)
         end
     end
@@ -94,7 +94,7 @@ end
 
 pcall(function()
     for _, child in ipairs(CoreGui:GetChildren()) do
-        if child.Name == "ScriptSenseEnterpriseGUI" or child.Name == "ScriptSenseESPContainer" then
+        if child.Name == "KilasikScriptSenseGUI" or child.Name == "KilasikESPContainer" then
             SafeDestroy(child)
         end
     end
@@ -107,18 +107,18 @@ if not RootGuiParent then RootGuiParent = LocalPlayer:WaitForChild("PlayerGui") 
 
 -- Main UI Container
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ScriptSenseEnterpriseGUI"
+ScreenGui.Name = "KilasikScriptSenseGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = RootGuiParent
 
 local ESPContainer = Instance.new("Folder")
-ESPContainer.Name = "ScriptSenseESPContainer"
+ESPContainer.Name = "KilasikESPContainer"
 ESPContainer.Parent = ScreenGui
 
 local IsMobileDevice = UserInputService.TouchEnabled
 
--- FOV Circle Drawing Initialization (Made extremely round with NumSides)
+-- FOV Circle Drawing Initialization
 local fovCircle = nil
 pcall(function()
     fovCircle = Drawing.new("Circle")
@@ -127,7 +127,6 @@ pcall(function()
     fovCircle.Color = Color3.fromRGB(255, 255, 255)
     fovCircle.Filled = false
     fovCircle.Transparency = 0.8
-    fovCircle.NumSides = 64
 end)
 
 -- Watermark Container
@@ -155,7 +154,7 @@ WatermarkLabel.BackgroundTransparency = 1
 WatermarkLabel.TextSize = 24
 WatermarkLabel.Font = Enum.Font.GothamBold
 WatermarkLabel.RichText = true
-WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font>'
+WatermarkLabel.Text = ""
 WatermarkLabel.TextXAlignment = Enum.TextXAlignment.Left
 WatermarkLabel.LayoutOrder = 1
 WatermarkLabel.Parent = WatermarkContainer
@@ -167,7 +166,7 @@ MenuToggleArrow.Size = UDim2.new(0, 26, 0, 26)
 MenuToggleArrow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MenuToggleArrow.BackgroundTransparency = 1
 MenuToggleArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
-MenuToggleArrow.TextTransparency = 0
+MenuToggleArrow.TextTransparency = 1
 MenuToggleArrow.TextSize = 13
 MenuToggleArrow.Font = Enum.Font.GothamBold
 MenuToggleArrow.Text = (not IsMobileDevice) and "▼" or "▲"
@@ -177,7 +176,7 @@ MenuToggleArrow.Parent = WatermarkContainer
 local ArrowStroke = Instance.new("UIStroke")
 ArrowStroke.Color = Color3.fromRGB(60, 60, 60)
 ArrowStroke.Thickness = 1
-ArrowStroke.Transparency = 0
+ArrowStroke.Transparency = 1
 ArrowStroke.Parent = MenuToggleArrow
 
 -- Main Control Panel Frame
@@ -194,7 +193,7 @@ MainControlPanel.Parent = ScreenGui
 local PanelStroke = Instance.new("UIStroke")
 PanelStroke.Color = Color3.fromRGB(50, 50, 50)
 PanelStroke.Thickness = 2
-PanelStroke.Transparency = 0
+PanelStroke.Transparency = 1
 PanelStroke.Parent = MainControlPanel
 
 -- Main Panel Title Bar
@@ -209,9 +208,9 @@ MainTitleLabel.Size = UDim2.new(1, -15, 1, 0)
 MainTitleLabel.Position = UDim2.new(0, 12, 0, 0)
 MainTitleLabel.BackgroundTransparency = 1
 MainTitleLabel.RichText = true
-MainTitleLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+MainTitleLabel.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
 MainTitleLabel.Font = Enum.Font.GothamBold
-MainTitleLabel.TextSize = 12
+MainTitleLabel.TextSize = 11
 MainTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 MainTitleLabel.Parent = MainTitleBar
 
@@ -229,7 +228,7 @@ MainFooterLabel.Size = UDim2.new(1, -15, 1, 0)
 MainFooterLabel.Position = UDim2.new(0, 12, 0, 0)
 MainFooterLabel.BackgroundTransparency = 1
 MainFooterLabel.RichText = true
-MainFooterLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+MainFooterLabel.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
 MainFooterLabel.Font = Enum.Font.GothamBold
 MainFooterLabel.TextSize = 10
 MainFooterLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -273,7 +272,6 @@ KeybindsMenuWindow.Parent = ScreenGui
 local KbStroke = Instance.new("UIStroke")
 KbStroke.Color = Color3.fromRGB(70, 70, 70)
 KbStroke.Thickness = 2
-KbStroke.Transparency = 0
 KbStroke.Parent = KeybindsMenuWindow
 
 local KbTitleBar = Instance.new("Frame")
@@ -287,7 +285,7 @@ KbTitle.Size = UDim2.new(1, -35, 1, 0)
 KbTitle.Position = UDim2.new(0, 12, 0, 0)
 KbTitle.BackgroundTransparency = 1
 KbTitle.RichText = true
-KbTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> — KEYBIND MANAGER'
+KbTitle.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> — KEYBIND MANAGER'
 KbTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 KbTitle.TextSize = 12
 KbTitle.Font = Enum.Font.GothamBold
@@ -327,7 +325,7 @@ local ToggleKeybindsMenu = function()
     KeybindsMenuWindow.Visible = not KeybindsMenuWindow.Visible
 end
 
--- SCRIPT SENSE FLING GUI Window
+-- Fling GUI Window (Dedicated separate window)
 local FlingGuiWindow = Instance.new("Frame")
 FlingGuiWindow.Name = "FlingGuiWindow"
 FlingGuiWindow.Size = UDim2.new(0, 240, 0, 130)
@@ -341,7 +339,6 @@ FlingGuiWindow.Parent = ScreenGui
 local FlingStroke = Instance.new("UIStroke")
 FlingStroke.Color = Color3.fromRGB(70, 70, 70)
 FlingStroke.Thickness = 2
-FlingStroke.Transparency = 0
 FlingStroke.Parent = FlingGuiWindow
 
 local FlingTitleBar = Instance.new("Frame")
@@ -355,7 +352,7 @@ FlingTitle.Size = UDim2.new(1, -35, 1, 0)
 FlingTitle.Position = UDim2.new(0, 12, 0, 0)
 FlingTitle.BackgroundTransparency = 1
 FlingTitle.RichText = true
-FlingTitle.Text = '<font color="#FFFFFF">SCRIPT SENSE</font> <font color="#FF0000">FLING GUI</font>'
+FlingTitle.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">FLING GUI</font>'
 FlingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 FlingTitle.TextSize = 12
 FlingTitle.Font = Enum.Font.GothamBold
@@ -398,10 +395,10 @@ FlingActionButton.MouseButton1Click:Connect(function()
                 local character = LocalPlayer.Character
                 if character and character:FindFirstChild("HumanoidRootPart") then
                     local rootPart = character.HumanoidRootPart
-                    local bav = rootPart:FindFirstChild("ScriptSenseFlingVelocity")
+                    local bav = rootPart:FindFirstChild("KilasikFlingVelocity")
                     if not bav then
                         bav = Instance.new("BodyAngularVelocity")
-                        bav.Name = "ScriptSenseFlingVelocity"
+                        bav.Name = "KilasikFlingVelocity"
                         bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
                         bav.AngularVelocity = Vector3.new(0, 99999, 0)
                         bav.Parent = rootPart
@@ -411,7 +408,7 @@ FlingActionButton.MouseButton1Click:Connect(function()
             end
             local character = LocalPlayer.Character
             if character and character:FindFirstChild("HumanoidRootPart") then
-                local bav = character.HumanoidRootPart:FindFirstChild("ScriptSenseFlingVelocity")
+                local bav = character.HumanoidRootPart:FindFirstChild("KilasikFlingVelocity")
                 if bav then bav:Destroy() end
             end
         end)
@@ -420,7 +417,7 @@ FlingActionButton.MouseButton1Click:Connect(function()
         FlingActionButton.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
         local character = LocalPlayer.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
-            local bav = character.HumanoidRootPart:FindFirstChild("ScriptSenseFlingVelocity")
+            local bav = character.HumanoidRootPart:FindFirstChild("KilasikFlingVelocity")
             if bav then bav:Destroy() end
         end
     end
@@ -435,20 +432,20 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = true
+    rowFrame.Visible = false
     rowFrame.Parent = parent
 
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Thickness = 1
-    stroke.Transparency = 0
+    stroke.Transparency = 1
     stroke.Parent = rowFrame
 
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, 0, 1, 0)
     button.BackgroundTransparency = 1
     button.TextColor3 = Color3.fromRGB(230, 230, 230)
-    button.TextTransparency = 0
+    button.TextTransparency = 1
     button.TextSize = 13
     button.Font = Enum.Font.GothamMedium
     button.Text = initialText
@@ -482,20 +479,20 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = true
+    rowFrame.Visible = false
     rowFrame.Parent = parent
 
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Thickness = 1
-    stroke.Transparency = 0
+    stroke.Transparency = 1
     stroke.Parent = rowFrame
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0.6, 0, 1, 0)
     label.Position = UDim2.new(0, 12, 0, 0)
     label.BackgroundTransparency = 1
-    label.TextTransparency = 0
+    label.TextTransparency = 1
     label.TextColor3 = Color3.fromRGB(230, 230, 230)
     label.TextSize = 13
     label.Font = Enum.Font.GothamMedium
@@ -641,6 +638,7 @@ CreateTextBoxRow(MainContainer, "anti aim | angle", ScriptSense.Config.AntiAimHe
     ScriptSense.Config.AntiAimHeadAngle = tonumber(val) or ScriptSense.Config.AntiAimHeadAngle
 end)
 
+-- TP GUI Integration
 CreateTextBoxRow(MainContainer, "tp | target name", ScriptSense.Config.TpTarget, function(val)
     ScriptSense.Config.TpTarget = tostring(val)
 end)
@@ -658,6 +656,7 @@ CreateControlRow(MainContainer, "teleport to player", function()
     end
 end)
 
+-- Open Fling GUI Button
 CreateControlRow(MainContainer, "open fling gui", function()
     FlingGuiWindow.Visible = not FlingGuiWindow.Visible
 end)
@@ -717,13 +716,11 @@ local function ClearDrawings()
 end
 
 RunService.RenderStepped:Connect(function(dt)
-    -- FOV Circle strictly tied to AimbotEnabled, made extremely smooth/round with NumSides = 64
     if fovCircle then
-        if ScriptSense.Config.AimbotEnabled then
+        if ScriptSense.Config.AimbotEnabled or ScriptSense.Config.FovCircleEnabled then
             fovCircle.Visible = true
             fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
             fovCircle.Radius = ScriptSense.Config.AimbotFovRadius
-            fovCircle.NumSides = 64
         else
             fovCircle.Visible = false
         end
@@ -740,21 +737,9 @@ RunService.RenderStepped:Connect(function(dt)
     if ScriptSense.Config.AntiAimEnabled then
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if root and hum then
-            hum.AutoRotate = false
+        if root then
             ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
-            local camLook = Camera.CFrame.LookVector
-            local camFlat = Vector3.new(camLook.X, 0, camLook.Z).Unit
-            if camFlat.Magnitude == 0 then camFlat = Vector3.new(0, 0, -1) end
-            local yawCFrame = CFrame.new(root.Position, root.Position + camFlat)
-            root.CFrame = yawCFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.CurrentSpinAngle), 0)
-        end
-    else
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.AutoRotate = true
+            root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.SpinSpeed), 0)
         end
     end
 
@@ -814,14 +799,137 @@ RunService.RenderStepped:Connect(function(dt)
                             box.Parent = ESPContainer
 
                             local boxStroke = Instance.new("UIStroke")
-                            boxStroke.Color = Color3.fromRGB(255, 50, 50)
+                            boxStroke.Color = Color3.fromRGB(255, 0, 0)
                             boxStroke.Thickness = 1
                             boxStroke.Parent = box
+
                             table.insert(activeDrawings, box)
+                        end
+
+                        if ScriptSense.Config.SkeletonEspEnabled then
+                            local function drawLine(part1, part2)
+                                if part1 and part2 then
+                                    local p1, on1 = Camera:WorldToViewportPoint(part1.Position)
+                                    local p2, on2 = Camera:WorldToViewportPoint(part2.Position)
+                                    if on1 or on2 then
+                                        local line = Instance.new("Frame")
+                                        line.Name = "SkeletonLine"
+                                        local dist = (Vector2.new(p1.X, p1.Y) - Vector2.new(p2.X, p2.Y)).Magnitude
+                                        line.Size = UDim2.new(0, dist, 0, 1)
+                                        line.Position = UDim2.new(0, (p1.X + p2.X)/2 - dist/2, 0, (p1.Y + p2.Y)/2)
+                                        line.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+                                        line.BorderSizePixel = 0
+                                        
+                                        local angle = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                                        line.Rotation = angle
+                                        line.Parent = ESPContainer
+                                        table.insert(activeDrawings, line)
+                                    end
+                                end
+                            end
+
+                            local upperTorso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+                            local lowerTorso = char:FindFirstChild("LowerTorso") or upperTorso
+                            local leftUpperArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
+                            local rightUpperArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
+                            local leftUpperLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
+                            local rightUpperLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
+
+                            if head and upperTorso then drawLine(head, upperTorso) end
+                            if upperTorso and leftUpperArm then drawLine(upperTorso, leftUpperArm) end
+                            if upperTorso and rightUpperArm then drawLine(upperTorso, rightUpperArm) end
+                            if upperTorso and lowerTorso then drawLine(upperTorso, lowerTorso) end
+                            if lowerTorso and leftUpperLeg then drawLine(lowerTorso, leftUpperLeg) end
+                            if lowerTorso and rightUpperLeg then drawLine(lowerTorso, rightUpperLeg) end
+                        end
+
+                        if ScriptSense.Config.NameEspEnabled then
+                            local nameLabel = Instance.new("TextLabel")
+                            nameLabel.Name = "NameESP"
+                            nameLabel.Size = UDim2.new(0, 100, 0, 20)
+                            nameLabel.Position = UDim2.new(0, rootPos.X - 50, 0, rootPos.Y - 45)
+                            nameLabel.BackgroundTransparency = 1
+                            nameLabel.Text = player.Name
+                            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            nameLabel.TextSize = 12
+                            nameLabel.Font = Enum.Font.GothamBold
+                            nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+                            nameLabel.Parent = ESPContainer
+                            table.insert(activeDrawings, nameLabel)
                         end
                     end
                 end
             end
+        end
+    end
+end)
+
+MainListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    MainContainer.CanvasSize = UDim2.new(0, 0, 0, MainListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Intro Sequence with KILASIK SCRIPT SENSE branding
+task.spawn(function()
+    local fullText = "KILASIK SCRIPT SENSE v" .. ScriptSense.Version
+    local totalChars = #fullText
+    local totalDuration = 2.0
+    local charDelay = totalDuration / totalChars
+
+    local function getPartialText(count)
+        local part1 = string.sub("KILASIK", 1, math.min(count, 7))
+        local res = '<font color="#FFFFFF">' .. part1 .. '</font>'
+        if count > 7 then
+            local part2 = string.sub(" SCRIPT SENSE", 1, math.min(count - 7, 13))
+            res = res .. '<font color="#FF0000">' .. part2 .. '</font>'
+        end
+        if count > 20 then
+            local part3 = string.sub(" v" .. ScriptSense.Version, 1, count - 20)
+            res = res .. '<font color="#AAAAAA">' .. part3 .. '</font>'
+        end
+        return res
+    end
+
+    for i = 1, totalChars do
+        WatermarkLabel.Text = getPartialText(i)
+        task.wait(charDelay)
+    end
+    WatermarkLabel.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+
+    local currentAbsPos = WatermarkContainer.AbsolutePosition
+    WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
+    WatermarkContainer.Position = UDim2.new(0, currentAbsPos.X, 0, currentAbsPos.Y)
+
+    local transitionTweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    TweenService:Create(WatermarkContainer, transitionTweenInfo, { Position = UDim2.new(0, 20, 0, 20) }):Play()
+
+    local textSizeVal = Instance.new("NumberValue")
+    textSizeVal.Value = 24
+    textSizeVal.Changed:Connect(function(v) WatermarkLabel.TextSize = v end)
+    TweenService:Create(textSizeVal, transitionTweenInfo, { Value = 14 }):Play()
+    task.delay(0.45, function() SafeDestroy(textSizeVal) end)
+
+    TweenService:Create(MenuToggleArrow, transitionTweenInfo, { TextTransparency = 0, BackgroundTransparency = 0 }):Play()
+    TweenService:Create(ArrowStroke, transitionTweenInfo, { Transparency = 0 }):Play()
+
+    task.wait(0.6)
+    if not IsMobileDevice then MainControlPanel.Visible = true isPanelVisible = true end
+    TweenService:Create(PanelStroke, transitionTweenInfo, { Transparency = 0 }):Play()
+
+    for index, rowFrame in ipairs(controlRowFrames) do
+        if rowFrame then
+            task.delay((index - 1) * 0.02 + 0.03, function()
+                rowFrame.Visible = true
+                local rowTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                TweenService:Create(rowFrame, rowTweenInfo, { BackgroundTransparency = 0.2 }):Play()
+                local stroke = rowFrame:FindFirstChildOfClass("UIStroke")
+                if stroke then TweenService:Create(stroke, rowTweenInfo, { Transparency = 0 }):Play() end
+                
+                local btn = rowFrame:FindFirstChildOfClass("TextButton")
+                if btn then TweenService:Create(btn, rowTweenInfo, { TextTransparency = 0 }):Play() end
+                
+                local lbl = rowFrame:FindFirstChildOfClass("TextLabel")
+                if lbl then TweenService:Create(lbl, rowTweenInfo, { TextTransparency = 0 }):Play() end
+            end)
         end
     end
 end)
