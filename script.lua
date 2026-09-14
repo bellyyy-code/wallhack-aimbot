@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.3.0"
+ScriptSense.Version = "7.4.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -52,6 +52,8 @@ ScriptSense.Config = {
     FovCircleEnabled = true,
 
     FlySpeed = 50,
+    SpeedhackSpeed = 32,
+    DefaultWalkSpeed = 16,
     WalkSpeedValue = 32,
     SpinSpeed = 25,
     AimbotSmoothness = 4,
@@ -185,7 +187,7 @@ end
 
 MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 
--- Keybinds Menu Window
+-- Keybinds Menu Window (With Mouse Wheel Scroll support)
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
 KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 390)
@@ -216,7 +218,8 @@ KbContainer.Size = UDim2.new(1, 0, 1, -40)
 KbContainer.Position = UDim2.new(0, 0, 0, 40)
 KbContainer.BackgroundTransparency = 1
 KbContainer.BorderSizePixel = 0
-KbContainer.ScrollBarThickness = 4
+KbContainer.ScrollBarThickness = 6
+KbContainer.Active = true
 KbContainer.Parent = KeybindsMenuWindow
 
 local KbListLayout = Instance.new("UIListLayout")
@@ -230,9 +233,10 @@ local ToggleKeybindsMenu = function()
     if KeybindsMenuWindow.Visible then PopulateKeybindsDisplay() end
 end
 
+local controlRowUpdateCallbacks = {}
 local controlRowFrames = {}
 
-local function CreateControlRow(parent, posY, initialText, callback)
+local function CreateControlRow(parent, posY, initialText, callback, updateCallback)
     local rowFrame = Instance.new("Frame")
     rowFrame.Size = UDim2.new(1, -20, 0, 35)
     rowFrame.Position = UDim2.new(0, 10, 0, posY)
@@ -266,6 +270,13 @@ local function CreateControlRow(parent, posY, initialText, callback)
     if callback then
         button.MouseButton1Click:Connect(function()
             pcall(callback)
+            if updateCallback then updateCallback(button) end
+        end)
+    end
+
+    if updateCallback then
+        table.insert(controlRowUpdateCallbacks, function()
+            updateCallback(button)
         end)
     end
 
@@ -280,51 +291,82 @@ local function GetKeyName(keyCode)
     return string.lower(name)
 end
 
--- Populate Panel Rows
+-- Populate Panel Rows with live state updates
 local verticalOffset = 15
 
 CreateControlRow(MainControlPanel, verticalOffset, "wallhack: off | bind: g", function()
     ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
+end, function(btn)
+    local status = ScriptSense.Config.WallhackEnabled and "on" or "off"
+    btn.Text = "  wallhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Wallhack))
 end)
 verticalOffset = verticalOffset + 42
 
 CreateControlRow(MainControlPanel, verticalOffset, "aimbot: off | bind: r", function()
     if not IsRobloxMenuOpen() then ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled end
+end, function(btn)
+    local status = ScriptSense.Config.AimbotEnabled and "on" or "off"
+    btn.Text = "  aimbot: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Aimbot))
 end)
 verticalOffset = verticalOffset + 42
 
 CreateControlRow(MainControlPanel, verticalOffset, "godmode: off | bind: c", function()
     ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
+end, function(btn)
+    local status = ScriptSense.Config.GodmodeEnabled and "on" or "off"
+    btn.Text = "  godmode: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Godmode))
 end)
 verticalOffset = verticalOffset + 42
 
 CreateControlRow(MainControlPanel, verticalOffset, "fly: off | bind: f", function()
     ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
+end, function(btn)
+    local status = ScriptSense.Config.FlyEnabled and "on" or "off"
+    btn.Text = "  fly: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Fly))
 end)
 verticalOffset = verticalOffset + 42
 
 CreateControlRow(MainControlPanel, verticalOffset, "skeleton esp: off | bind: x", function()
     ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
+end, function(btn)
+    local status = ScriptSense.Config.SkeletonEspEnabled and "on" or "off"
+    btn.Text = "  skeleton esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Skeleton))
 end)
 verticalOffset = verticalOffset + 42
 
 CreateControlRow(MainControlPanel, verticalOffset, "box esp: off | bind: b", function()
     ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
+end, function(btn)
+    local status = ScriptSense.Config.BoxEspEnabled and "on" or "off"
+    btn.Text = "  box esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.BoxEsp))
 end)
 verticalOffset = verticalOffset + 42
 
 CreateControlRow(MainControlPanel, verticalOffset, "name esp: off | bind: n", function()
     ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
+end, function(btn)
+    local status = ScriptSense.Config.NameEspEnabled and "on" or "off"
+    btn.Text = "  name esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.NameEsp))
 end)
 verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "speedhack: off | bind: v", function()
+CreateControlRow(MainControlPanel, verticalOffset, "speedhack: off | speed: 32 | bind: v", function()
     ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
+    if not ScriptSense.Config.SpeedhackEnabled then
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then humanoid.WalkSpeed = ScriptSense.Config.DefaultWalkSpeed end
+    end
+end, function(btn)
+    local status = ScriptSense.Config.SpeedhackEnabled and "on" or "off"
+    btn.Text = "  speedhack: " .. status .. " | speed: " .. ScriptSense.Config.SpeedhackSpeed .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
 end)
 verticalOffset = verticalOffset + 42
 
 CreateControlRow(MainControlPanel, verticalOffset, "anti-aim: off | bind: u", function()
     ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
+end, function(btn)
+    local status = ScriptSense.Config.AntiAimEnabled and "on" or "off"
+    btn.Text = "  anti-aim: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.AntiAim))
 end)
 verticalOffset = verticalOffset + 42
 
@@ -336,6 +378,7 @@ TeleportWindow.Position = UDim2.new(0.5, -150, 0.5, -180)
 TeleportWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 TeleportWindow.BorderSizePixel = 0
 TeleportWindow.ScrollBarThickness = 6
+TeleportWindow.Active = true
 TeleportWindow.Visible = false
 TeleportWindow.Parent = ScreenGui
 
@@ -353,7 +396,7 @@ CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
 end)
 verticalOffset = verticalOffset + 42
 
--- Multi Fling Window (SCRIPT(WHITE) SENSE(RED) MULTI FLING(RED))
+-- Multi Fling Window
 local FlingWindow = Instance.new("Frame")
 FlingWindow.Name = "FlingWindow"
 FlingWindow.Size = UDim2.new(0, 300, 0, 390)
@@ -429,6 +472,7 @@ PlayerScrollFrame.Size = UDim2.new(1, -10, 1, -10)
 PlayerScrollFrame.BackgroundTransparency = 1
 PlayerScrollFrame.BorderSizePixel = 0
 PlayerScrollFrame.ScrollBarThickness = 4
+PlayerScrollFrame.Active = true
 PlayerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 PlayerScrollFrame.Parent = SelectionFrame
 
@@ -491,7 +535,7 @@ CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", fu
 end)
 verticalOffset = verticalOffset + 42
 
--- Intro Sequence (SCRIPT SENSE MULTI FLING)
+-- Intro Sequence
 task.spawn(function()
     local fullText = "SCRIPT SENSE MULTI FLING"
     local totalChars = #fullText
@@ -547,6 +591,13 @@ task.spawn(function()
         end
     end
 end)
+
+-- Helper to update row texts dynamically
+local function RefreshControlRowTexts()
+    for _, callback in ipairs(controlRowUpdateCallbacks) do
+        pcall(callback)
+    end
+end
 
 -- Keybinds window population
 PopulateKeybindsDisplay = function()
@@ -985,13 +1036,13 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. Speedhack Engine
+-- 3. Speedhack Engine (Configurable speed & dynamic status)
 RunService.Stepped:Connect(function()
-    if ScriptSense.Config.SpeedhackEnabled then
-        local character = LocalPlayer.Character
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = ScriptSense.Config.WalkSpeedValue
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        if ScriptSense.Config.SpeedhackEnabled then
+            humanoid.WalkSpeed = ScriptSense.Config.SpeedhackSpeed
         end
     end
 end)
@@ -1194,25 +1245,27 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- 9. Anti-Aim Engine
-local ActiveBodyAngularVelocity = nil
+-- 9. Anti-Aim Engine (Works perfectly even during ShiftLock)
 RunService.RenderStepped:Connect(function()
-    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then
+    local character = LocalPlayer.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    if hrp and humanoid then
         if ScriptSense.Config.AntiAimEnabled then
-            if not ActiveBodyAngularVelocity or not ActiveBodyAngularVelocity.Parent then
-                ActiveBodyAngularVelocity = Instance.new("BodyAngularVelocity")
-                ActiveBodyAngularVelocity.MaxTorque = Vector3.new(0, 9e4, 0)
-                ActiveBodyAngularVelocity.P = 9e4
-                ActiveBodyAngularVelocity.Parent = hrp
-            end
-            ActiveBodyAngularVelocity.AngularVelocity = Vector3.new(0, ScriptSense.Config.SpinSpeed * 2, 0)
+            humanoid.AutoRotate = false
+            local currentPos = hrp.Position
+            ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
+            hrp.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, math.rad(ScriptSense.Config.CurrentSpinAngle), 0)
         else
-            if ActiveBodyAngularVelocity then
-                pcall(function() ActiveBodyAngularVelocity:Destroy() end)
-                ActiveBodyAngularVelocity = nil
-            end
+            humanoid.AutoRotate = true
         end
+    end
+end)
+
+-- Periodic UI Status Updater
+task.spawn(function()
+    while task.wait(0.2) do
+        RefreshControlRowTexts()
     end
 end)
 
@@ -1223,6 +1276,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             ScriptSense.Config.Keybinds[activeRebindKey] = input.KeyCode
             activeRebindKey = nil
             PopulateKeybindsDisplay()
+            RefreshControlRowTexts()
         end
         return
     end
@@ -1236,9 +1290,16 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     elseif input.KeyCode == ScriptSense.Config.Keybinds.Skeleton then ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
     elseif input.KeyCode == ScriptSense.Config.Keybinds.BoxEsp then ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
     elseif input.KeyCode == ScriptSense.Config.Keybinds.NameEsp then ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.Speedhack then ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.Speedhack then 
+        ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
+        if not ScriptSense.Config.SpeedhackEnabled then
+            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then humanoid.WalkSpeed = ScriptSense.Config.DefaultWalkSpeed end
+        end
     elseif input.KeyCode == ScriptSense.Config.Keybinds.AntiAim then ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled end
+    
+    RefreshControlRowTexts()
 end)
 
-print("[ScriptSense v7.3.0]: Multi Fling Integrated with Custom Title.")
+print("[ScriptSense v7.4.0]: Fully integrated with Wheel Scroll, ShiftLock Anti-Aim, and Speedhack.")
 return ScriptSense
