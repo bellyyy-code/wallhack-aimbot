@@ -837,7 +837,7 @@ DeselectAllButton.Position = UDim2.new(0.5, 5, 0, 320)
 DeselectAllButton.Size = UDim2.new(0.5, -15, 0, 30)
 DeselectAllButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 DeselectAllButton.BorderSizePixel = 0
-DeselectAllButton.Text = "DESELECTALL"
+DeselectAllButton.Text = "DESELECT ALL"
 DeselectAllButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 DeselectAllButton.Font = Enum.Font.GothamMedium
 DeselectAllButton.TextSize = 12
@@ -849,6 +849,47 @@ end)
 
 CreateControlRow(MainContainer, "keybinds menu | bind: `", function()
     ToggleKeybindsMenu()
+end)
+
+-- Global Keybinds Listener Integration
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        local keyCode = input.KeyCode
+        
+        if keyCode == ScriptSense.Config.Keybinds.MenuToggle then
+            ToggleMenuVisibility()
+        elseif keyCode == ScriptSense.Config.Keybinds.Wallhack then
+            ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
+        elseif keyCode == ScriptSense.Config.Keybinds.Aimbot then
+            if not IsRobloxMenuOpen() then
+                ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled
+            end
+        elseif keyCode == ScriptSense.Config.Keybinds.Godmode then
+            ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
+        elseif keyCode == ScriptSense.Config.Keybinds.Fly then
+            ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
+        elseif keyCode == ScriptSense.Config.Keybinds.Skeleton then
+            ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
+        elseif keyCode == ScriptSense.Config.Keybinds.BoxEsp then
+            ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
+        elseif keyCode == ScriptSense.Config.Keybinds.NameEsp then
+            ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
+        elseif keyCode == ScriptSense.Config.Keybinds.Speedhack then
+            ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
+            if not ScriptSense.Config.SpeedhackEnabled then
+                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then humanoid.WalkSpeed = ScriptSense.Config.DefaultWalkSpeed end
+            end
+        elseif keyCode == ScriptSense.Config.Keybinds.AntiAim then
+            ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
+        end
+        
+        -- Refresh control panel UI texts
+        for _, updateCb in ipairs(controlRowUpdateCallbacks) do
+            pcall(updateCb)
+        end
+    end
 end)
 
 -- Update MainContainer CanvasSize automatically
