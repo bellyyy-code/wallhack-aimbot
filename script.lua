@@ -64,6 +64,7 @@ ScriptSense.Config = {
         BoxEsp = Enum.KeyCode.B,
         AntiAim = Enum.KeyCode.U,
         TouchFling = Enum.KeyCode.K,
+        KickFling = Enum.KeyCode.Z,
         MenuToggle = Enum.KeyCode.Backquote,
     }
 }
@@ -168,7 +169,7 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 240, 0, 500)
+MainControlPanel.Size = UDim2.new(0, 240, 0, 540)
 MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
@@ -295,6 +296,39 @@ local function GetKeyName(keyCode)
     return string.lower(name)
 end
 
+-- DropKick execution function
+local function TriggerDropKick()
+    local discord = "https://discord.gg/AeuSH2EQK"
+    if setclipboard then
+        setclipboard(discord)
+    end
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "c00lkids103 Script",
+            Text = "Discord copied! Join: " .. discord .. "\nMade by c00lkids103",
+            Duration = 10,
+            Button1 = "Okay"
+        })
+    end)
+    task.spawn(function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/universal/DropKick.lua"))()
+        end)
+        if success then
+            print("✅ DropKick script loaded successfully!")
+        else
+            warn("❌ Failed to load DropKick script: " .. tostring(err))
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "c00lkids103 Script",
+                    Text = "Failed to load DropKick script.\nCheck your executor or internet.",
+                    Duration = 8,
+                })
+            end)
+        end
+    end)
+end
+
 -- Populate Main Control Panel Rows
 local verticalOffset = 15
 
@@ -351,12 +385,6 @@ end)
 UIComponentRegistry["touchfling"] = touchFlingRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, menuToggleRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
-    ToggleKeybindsMenu()
-end)
-UIComponentRegistry["menutoggle"] = menuToggleRowBtn
-verticalOffset = verticalOffset + 42
-
 -- Teleport Window
 local TeleportWindow = Instance.new("ScrollingFrame")
 TeleportWindow.Name = "TeleportWindow"
@@ -380,6 +408,19 @@ TpLayout.Parent = TeleportWindow
 CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
     TeleportWindow.Visible = not TeleportWindow.Visible
 end)
+verticalOffset = verticalOffset + 42
+
+-- DropKick (Kick Fling) integrated button with bind Z
+CreateControlRow(MainControlPanel, verticalOffset, "kick fling (c00lkids103) | bind: z", function()
+    TriggerDropKick()
+end)
+verticalOffset = verticalOffset + 42
+
+CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
+    ToggleKeybindsMenu()
+end)
+UIComponentRegistry["menutoggle"] = menuToggleRowBtn
+verticalOffset = verticalOffset + 42
 
 -- Intro Sequence (2s Typewriter)
 task.spawn(function()
@@ -489,6 +530,7 @@ PopulateKeybindsDisplay = function()
         {"Box ESP", "BoxEsp", ScriptSense.Config.Keybinds.BoxEsp},
         {"Anti-Aim", "AntiAim", ScriptSense.Config.Keybinds.AntiAim},
         {"TouchFling", "TouchFling", ScriptSense.Config.Keybinds.TouchFling},
+        {"KickFling", "KickFling", ScriptSense.Config.Keybinds.KickFling},
         {"Menu Toggle", "MenuToggle", ScriptSense.Config.Keybinds.MenuToggle},
     }
 
@@ -953,6 +995,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if ScriptSense.Config.TouchFlingEnabled then
                 startFlingThread()
             end
+        elseif input.KeyCode == ScriptSense.Config.Keybinds.KickFling then
+            TriggerDropKick()
         elseif input.KeyCode == ScriptSense.Config.Keybinds.MenuToggle then
             ToggleKeybindsMenu()
         end
