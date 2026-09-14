@@ -117,7 +117,7 @@ ESPContainer.Parent = ScreenGui
 
 local IsMobileDevice = UserInputService.TouchEnabled
 
--- Draggable Utility Function
+-- Draggable Utility Function (kept for keybinds window if needed, but removed from main panel)
 local function MakeDraggable(frame, handle)
     handle = handle or frame
     local dragging, dragInput, dragStart, startPos
@@ -207,7 +207,7 @@ ArrowStroke.Thickness = 1
 ArrowStroke.Transparency = 1
 ArrowStroke.Parent = MenuToggleArrow
 
--- Main Control Panel Frame
+-- Main Control Panel Frame (Fixed position, not draggable)
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
 MainControlPanel.Size = UDim2.new(0, 250, 0, 480)
@@ -217,8 +217,6 @@ MainControlPanel.BorderSizePixel = 0
 MainControlPanel.ClipsDescendants = true
 MainControlPanel.Visible = false
 MainControlPanel.Parent = ScreenGui
-
-MakeDraggable(MainControlPanel, MainControlPanel)
 
 local PanelStroke = Instance.new("UIStroke")
 PanelStroke.Color = Color3.fromRGB(50, 50, 50)
@@ -232,8 +230,6 @@ MainTitleBar.Size = UDim2.new(1, 0, 0, 35)
 MainTitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 MainTitleBar.BorderSizePixel = 0
 MainTitleBar.Parent = MainControlPanel
-
-MakeDraggable(MainControlPanel, MainTitleBar)
 
 local MainTitleLabel = Instance.new("TextLabel")
 MainTitleLabel.Size = UDim2.new(1, -15, 1, 0)
@@ -411,88 +407,6 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
     return rowFrame, button
 end
 
-local function CreateSliderRow(parent, labelText, minVal, maxVal, initialValue, onValueChanged)
-    local rowFrame = Instance.new("Frame")
-    rowFrame.Size = UDim2.new(1, 0, 0, 48)
-    rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    rowFrame.BackgroundTransparency = 0.2
-    rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = false
-    rowFrame.Parent = parent
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(45, 45, 45)
-    stroke.Thickness = 1
-    stroke.Transparency = 1
-    stroke.Parent = rowFrame
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -24, 0, 20)
-    label.Position = UDim2.new(0, 12, 0, 6)
-    label.BackgroundTransparency = 1
-    label.TextTransparency = 1
-    label.TextColor3 = Color3.fromRGB(230, 230, 230)
-    label.TextSize = 13
-    label.Font = Enum.Font.GothamMedium
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = "  " .. labelText .. " (" .. tostring(initialValue) .. ")"
-    label.Parent = rowFrame
-
-    local sliderBg = Instance.new("Frame")
-    sliderBg.Size = UDim2.new(1, -24, 0, 6)
-    sliderBg.Position = UDim2.new(0, 12, 0, 32)
-    sliderBg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    sliderBg.BorderSizePixel = 0
-    sliderBg.Parent = rowFrame
-
-    local sliderBgStroke = Instance.new("UIStroke")
-    sliderBgStroke.Color = Color3.fromRGB(50, 50, 50)
-    sliderBgStroke.Thickness = 1
-    sliderBgStroke.Transparency = 1
-    sliderBgStroke.Parent = sliderBg
-
-    local sliderFill = Instance.new("Frame")
-    local initPercent = math.clamp((initialValue - minVal) / (maxVal - minVal), 0, 1)
-    sliderFill.Size = UDim2.new(initPercent, 0, 1, 0)
-    sliderFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    sliderFill.BorderSizePixel = 0
-    sliderFill.Parent = sliderBg
-
-    local dragging = false
-    local function updateValue(input)
-        local pos = input.Position.X
-        local absPos = sliderBg.AbsolutePosition.X
-        local absSize = sliderBg.AbsoluteSize.X
-        local percent = math.clamp((pos - absPos) / (absSize > 0 and absSize or 1), 0, 1)
-        local val = math.floor(minVal + (maxVal - minVal) * percent)
-        sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-        label.Text = "  " .. labelText .. " (" .. tostring(val) .. ")"
-        onValueChanged(val)
-    end
-
-    sliderBg.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            updateValue(input)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateValue(input)
-        end
-    end)
-
-    table.insert(controlRowFrames, rowFrame)
-    return rowFrame
-end
-
 local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
     local rowFrame = Instance.new("Frame")
     rowFrame.Size = UDim2.new(1, 0, 0, 38)
@@ -640,7 +554,7 @@ end, function(btn)
     btn.Text = "  speedhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
 end)
 
-CreateSliderRow(MainContainer, "speedhack | speed", 16, 200, ScriptSense.Config.SpeedhackSpeed, function(val)
+CreateTextBoxRow(MainContainer, "speedhack | speed", ScriptSense.Config.SpeedhackSpeed, function(val)
     ScriptSense.Config.SpeedhackSpeed = val
 end)
 
@@ -651,11 +565,11 @@ end, function(btn)
     btn.Text = "  anti-aim: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.AntiAim))
 end)
 
-CreateSliderRow(MainContainer, "anti aim | speed", 1, 100, ScriptSense.Config.SpinSpeed, function(val)
+CreateTextBoxRow(MainContainer, "anti aim | speed", ScriptSense.Config.SpinSpeed, function(val)
     ScriptSense.Config.SpinSpeed = val
 end)
 
-CreateSliderRow(MainContainer, "anti aim | angle", 0, 360, ScriptSense.Config.AntiAimHeadAngle, function(val)
+CreateTextBoxRow(MainContainer, "anti aim | angle", ScriptSense.Config.AntiAimHeadAngle, function(val)
     ScriptSense.Config.AntiAimHeadAngle = val
 end)
 
@@ -663,7 +577,7 @@ CreateControlRow(MainContainer, "keybinds manager", function()
     ToggleKeybindsMenu()
 end)
 
--- Robust Global Keybinds Listener (FIXED: Supports all layouts and avoids strict gameProcessed lockouts)
+-- Robust Global Keybinds Listener
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
