@@ -296,7 +296,7 @@ local function GetKeyName(keyCode)
     return string.lower(name)
 end
 
--- DropKick execution function
+-- DropKick execution function (Made by c00lkids103)
 local function TriggerDropKick()
     local discord = "https://discord.gg/AeuSH2EQK"
     if setclipboard then
@@ -410,7 +410,7 @@ CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
 end)
 verticalOffset = verticalOffset + 42
 
--- DropKick (Kick Fling) integrated button with bind Z
+-- DropKick (Kick Fling) button by c00lkids103 with bind Z
 CreateControlRow(MainControlPanel, verticalOffset, "kick fling (c00lkids103) | bind: z", function()
     TriggerDropKick()
 end)
@@ -530,7 +530,7 @@ PopulateKeybindsDisplay = function()
         {"Box ESP", "BoxEsp", ScriptSense.Config.Keybinds.BoxEsp},
         {"Anti-Aim", "AntiAim", ScriptSense.Config.Keybinds.AntiAim},
         {"TouchFling", "TouchFling", ScriptSense.Config.Keybinds.TouchFling},
-        {"KickFling", "KickFling", ScriptSense.Config.Keybinds.KickFling},
+        {"KickFling (c00lkids103)", "KickFling", ScriptSense.Config.Keybinds.KickFling},
         {"Menu Toggle", "MenuToggle", ScriptSense.Config.Keybinds.MenuToggle},
     }
 
@@ -680,7 +680,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. TouchFling Engine
+-- 3. TouchFling Engine (Fling strength set to 1000)
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     local detection = Instance.new("Decal")
     detection.Name = "juisdfj0i32i0eidsuf0iok"
@@ -699,7 +699,7 @@ startFlingThread = function()
 
             if hrp then
                 vel = hrp.Velocity
-                hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+                hrp.Velocity = vel * 1000 + Vector3.new(0, 1000, 0)
                 RunService.RenderStepped:Wait()
                 hrp.Velocity = vel
                 RunService.Stepped:Wait()
