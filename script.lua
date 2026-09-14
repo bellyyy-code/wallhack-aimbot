@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.9.0"
+ScriptSense.Version = "7.9.1"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -1210,11 +1210,12 @@ RunService.RenderStepped:Connect(function(dt)
 
                 if rootPart and head and humanoid and humanoid.Health > 0 then
                     local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-                    if onScreen then
+                    -- Fixed depth check (Z > 0) to prevent backward projection explosions and out-of-screen stretching
+                    if onScreen and rootPos.Z > 0 then
                         local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
                         local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
-                        local height = math.abs(headPos.Y - legPos.Y)
-                        local width = height / 2
+                        local height = math.clamp(math.abs(headPos.Y - legPos.Y), 10, 2000)
+                        local width = math.clamp(height / 2, 5, 1000)
 
                         if ScriptSense.Config.BoxEspEnabled then
                             local box = Drawing.new("Square")
@@ -1240,17 +1241,53 @@ RunService.RenderStepped:Connect(function(dt)
                         end
 
                         if ScriptSense.Config.SkeletonEspEnabled then
-                            local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-                            if torso and head then
-                                local hPos = Camera:WorldToViewportPoint(head.Position)
-                                local tPos = Camera:WorldToViewportPoint(torso.Position)
-                                local line = Drawing.new("Line")
-                                line.Visible = true
-                                line.Color = Color3.fromRGB(255, 255, 255)
-                                line.Thickness = 1
-                                line.From = Vector2.new(hPos.X, hPos.Y)
-                                line.To = Vector2.new(tPos.X, tPos.Y)
-                                table.insert(activeDrawings, line)
+                            -- Full multi-bone skeleton tracer supporting R6 and R15 rigs
+                            local joints = {}
+                            if humanoid.RigType == Enum.HumanoidRigType.R6 then
+                                local torso = char:FindFirstChild("Torso")
+                                local leftArm = char:FindFirstChild("Left Arm")
+                                local rightArm = char:FindFirstChild("Right Arm")
+                                local leftLeg = char:FindFirstChild("Left Leg")
+                                local rightLeg = char:FindFirstChild("Right Leg")
+                                if head and torso then
+                                    table.insert(joints, {head, torso})
+                                    if leftArm then table.insert(joints, {torso, leftArm}) end
+                                    if rightArm then table.insert(joints, {torso, rightArm}) end
+                                    if leftLeg then table.insert(joints, {torso, leftLeg}) end
+                                    if rightLeg then table.insert(joints, {torso, rightLeg}) end
+                                end
+                            else -- R15
+                                local upperTorso = char:FindFirstChild("UpperTorso")
+                                local lowerTorso = char:FindFirstChild("LowerTorso")
+                                local leftUpperArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("LeftHand")
+                                local rightUpperArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("RightHand")
+                                local leftUpperLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("LeftFoot")
+                                local rightUpperLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("RightFoot")
+                                if head and upperTorso then
+                                    table.insert(joints, {head, upperTorso})
+                                    if lowerTorso then table.insert(joints, {upperTorso, lowerTorso}) end
+                                    if leftUpperArm then table.insert(joints, {upperTorso, leftUpperArm}) end
+                                    if rightUpperArm then table.insert(joints, {upperTorso, rightUpperArm}) end
+                                    if leftUpperLeg then table.insert(joints, {lowerTorso or upperTorso, leftUpperLeg}) end
+                                    if rightUpperLeg then table.insert(joints, {lowerTorso or upperTorso, rightUpperLeg}) end
+                                end
+                            end
+
+                            for _, joint in ipairs(joints) do
+                                local p1, p2 = joint[1], joint[2]
+                                if p1 and p2 then
+                                    local v1, s1 = Camera:WorldToViewportPoint(p1.Position)
+                                    local v2, s2 = Camera:WorldToViewportPoint(p2.Position)
+                                    if s1 and s2 and v1.Z > 0 and v2.Z > 0 then
+                                        local line = Drawing.new("Line")
+                                        line.Visible = true
+                                        line.Color = Color3.fromRGB(255, 255, 255)
+                                        line.Thickness = 1
+                                        line.From = Vector2.new(v1.X, v1.Y)
+                                        line.To = Vector2.new(v2.X, v2.Y)
+                                        table.insert(activeDrawings, line)
+                                    end
+                                end
                             end
                         end
                     end
