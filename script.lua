@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.6.7"
+ScriptSense.Version = "7.7.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -734,12 +734,25 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
+    -- Anti-Aim Fix with ShiftLock (disables AutoRotate override conflict and spins correctly)
     if ScriptSense.Config.AntiAimEnabled then
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
-        if root then
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if root and hum then
+            hum.AutoRotate = false
             ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
-            root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.SpinSpeed), 0)
+            local camLook = Camera.CFrame.LookVector
+            local camFlat = Vector3.new(camLook.X, 0, camLook.Z).Unit
+            if camFlat.Magnitude == 0 then camFlat = Vector3.new(0, 0, -1) end
+            local yawCFrame = CFrame.new(root.Position, root.Position + camFlat)
+            root.CFrame = yawCFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.CurrentSpinAngle), 0)
+        end
+    else
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.AutoRotate = true
         end
     end
 
@@ -799,137 +812,14 @@ RunService.RenderStepped:Connect(function(dt)
                             box.Parent = ESPContainer
 
                             local boxStroke = Instance.new("UIStroke")
-                            boxStroke.Color = Color3.fromRGB(255, 0, 0)
+                            boxStroke.Color = Color3.fromRGB(255, 50, 50)
                             boxStroke.Thickness = 1
                             boxStroke.Parent = box
-
                             table.insert(activeDrawings, box)
-                        end
-
-                        if ScriptSense.Config.SkeletonEspEnabled then
-                            local function drawLine(part1, part2)
-                                if part1 and part2 then
-                                    local p1, on1 = Camera:WorldToViewportPoint(part1.Position)
-                                    local p2, on2 = Camera:WorldToViewportPoint(part2.Position)
-                                    if on1 or on2 then
-                                        local line = Instance.new("Frame")
-                                        line.Name = "SkeletonLine"
-                                        local dist = (Vector2.new(p1.X, p1.Y) - Vector2.new(p2.X, p2.Y)).Magnitude
-                                        line.Size = UDim2.new(0, dist, 0, 1)
-                                        line.Position = UDim2.new(0, (p1.X + p2.X)/2 - dist/2, 0, (p1.Y + p2.Y)/2)
-                                        line.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-                                        line.BorderSizePixel = 0
-                                        
-                                        local angle = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
-                                        line.Rotation = angle
-                                        line.Parent = ESPContainer
-                                        table.insert(activeDrawings, line)
-                                    end
-                                end
-                            end
-
-                            local upperTorso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-                            local lowerTorso = char:FindFirstChild("LowerTorso") or upperTorso
-                            local leftUpperArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
-                            local rightUpperArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
-                            local leftUpperLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
-                            local rightUpperLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
-
-                            if head and upperTorso then drawLine(head, upperTorso) end
-                            if upperTorso and leftUpperArm then drawLine(upperTorso, leftUpperArm) end
-                            if upperTorso and rightUpperArm then drawLine(upperTorso, rightUpperArm) end
-                            if upperTorso and lowerTorso then drawLine(upperTorso, lowerTorso) end
-                            if lowerTorso and leftUpperLeg then drawLine(lowerTorso, leftUpperLeg) end
-                            if lowerTorso and rightUpperLeg then drawLine(lowerTorso, rightUpperLeg) end
-                        end
-
-                        if ScriptSense.Config.NameEspEnabled then
-                            local nameLabel = Instance.new("TextLabel")
-                            nameLabel.Name = "NameESP"
-                            nameLabel.Size = UDim2.new(0, 100, 0, 20)
-                            nameLabel.Position = UDim2.new(0, rootPos.X - 50, 0, rootPos.Y - 45)
-                            nameLabel.BackgroundTransparency = 1
-                            nameLabel.Text = player.Name
-                            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            nameLabel.TextSize = 12
-                            nameLabel.Font = Enum.Font.GothamBold
-                            nameLabel.TextXAlignment = Enum.TextXAlignment.Center
-                            nameLabel.Parent = ESPContainer
-                            table.insert(activeDrawings, nameLabel)
                         end
                     end
                 end
             end
-        end
-    end
-end)
-
-MainListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    MainContainer.CanvasSize = UDim2.new(0, 0, 0, MainListLayout.AbsoluteContentSize.Y + 10)
-end)
-
--- Intro Sequence with SCRIPT SENSE branding
-task.spawn(function()
-    local fullText = "SCRIPT SENSE v" .. ScriptSense.Version
-    local totalChars = #fullText
-    local totalDuration = 2.0
-    local charDelay = totalDuration / totalChars
-
-    local function getPartialText(count)
-        local scriptPart = string.sub("SCRIPT", 1, math.min(count, 6))
-        local res = '<font color="#FFFFFF">' .. scriptPart .. '</font>'
-        if count > 6 then
-            local sensePart = string.sub(" SENSE", 1, math.min(count - 6, 6))
-            res = res .. '<font color="#FF0000">' .. sensePart .. '</font>'
-        end
-        if count > 12 then
-            local verPart = string.sub(" v" .. ScriptSense.Version, 1, count - 12)
-            res = res .. '<font color="#AAAAAA">' .. verPart .. '</font>'
-        end
-        return res
-    end
-
-    for i = 1, totalChars do
-        WatermarkLabel.Text = getPartialText(i)
-        task.wait(charDelay)
-    end
-    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
-
-    local currentAbsPos = WatermarkContainer.AbsolutePosition
-    WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
-    WatermarkContainer.Position = UDim2.new(0, currentAbsPos.X, 0, currentAbsPos.Y)
-
-    local transitionTweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    TweenService:Create(WatermarkContainer, transitionTweenInfo, { Position = UDim2.new(0, 20, 0, 20) }):Play()
-
-    local textSizeVal = Instance.new("NumberValue")
-    textSizeVal.Value = 24
-    textSizeVal.Changed:Connect(function(v) WatermarkLabel.TextSize = v end)
-    TweenService:Create(textSizeVal, transitionTweenInfo, { Value = 14 }):Play()
-    task.delay(0.45, function() SafeDestroy(textSizeVal) end)
-
-    TweenService:Create(MenuToggleArrow, transitionTweenInfo, { TextTransparency = 0, BackgroundTransparency = 0 }):Play()
-    TweenService:Create(ArrowStroke, transitionTweenInfo, { Transparency = 0 }):Play()
-
-    task.wait(0.6)
-    if not IsMobileDevice then MainControlPanel.Visible = true isPanelVisible = true end
-    TweenService:Create(PanelStroke, transitionTweenInfo, { Transparency = 0 }):Play()
-
-    for index, rowFrame in ipairs(controlRowFrames) do
-        if rowFrame then
-            task.delay((index - 1) * 0.02 + 0.03, function()
-                rowFrame.Visible = true
-                local rowTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-                TweenService:Create(rowFrame, rowTweenInfo, { BackgroundTransparency = 0.2 }):Play()
-                local stroke = rowFrame:FindFirstChildOfClass("UIStroke")
-                if stroke then TweenService:Create(stroke, rowTweenInfo, { Transparency = 0 }):Play() end
-                
-                local btn = rowFrame:FindFirstChildOfClass("TextButton")
-                if btn then TweenService:Create(btn, rowTweenInfo, { TextTransparency = 0 }):Play() end
-                
-                local lbl = rowFrame:FindFirstChildOfClass("TextLabel")
-                if lbl then TweenService:Create(lbl, rowTweenInfo, { TextTransparency = 0 }):Play() end
-            end)
         end
     end
 end)
