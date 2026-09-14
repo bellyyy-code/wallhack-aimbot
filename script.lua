@@ -48,7 +48,6 @@ ScriptSense.Config = {
     BoxEspEnabled = false,
     AntiAimEnabled = false,
     TouchFlingEnabled = false,
-    KickFlingEnabled = false,
 
     FlySpeed = 50,
     SpinSpeed = 25,
@@ -65,7 +64,6 @@ ScriptSense.Config = {
         BoxEsp = Enum.KeyCode.B,
         AntiAim = Enum.KeyCode.U,
         TouchFling = Enum.KeyCode.K,
-        KickFling = Enum.KeyCode.Z,
         MenuToggle = Enum.KeyCode.Backquote,
     }
 }
@@ -170,7 +168,7 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 240, 0, 540)
+MainControlPanel.Size = UDim2.new(0, 240, 0, 498)
 MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
@@ -195,8 +193,8 @@ MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 -- Dedicated Interactive Keybinds Menu Window
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
-KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 420)
-KeybindsMenuWindow.Position = UDim2.new(0.5, -150, 0.5, -210)
+KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 380)
+KeybindsMenuWindow.Position = UDim2.new(0.5, -150, 0.5, -190)
 KeybindsMenuWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 KeybindsMenuWindow.BorderSizePixel = 0
 KeybindsMenuWindow.Visible = false
@@ -290,14 +288,16 @@ local function GetKeyName(keyCode)
     return string.lower(name)
 end
 
--- Native DropKick / KickFling Engine without external GUI
+-- Hidden KickFling / DropKick Engine (Activated via Z without GUI entry)
+getgenv().DropKickActive = false
 local kickFlingLoop = nil
+
 local function ToggleKickFling()
-    ScriptSense.Config.KickFlingEnabled = not ScriptSense.Config.KickFlingEnabled
-    if ScriptSense.Config.KickFlingEnabled then
+    getgenv().DropKickActive = not getgenv().DropKickActive
+    if getgenv().DropKickActive then
         if not kickFlingLoop then
             kickFlingLoop = task.spawn(function()
-                while ScriptSense.Config.KickFlingEnabled do
+                while getgenv().DropKickActive do
                     RunService.Heartbeat:Wait()
                     local character = LocalPlayer.Character
                     local hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -393,13 +393,6 @@ TpLayout.Parent = TeleportWindow
 CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
     TeleportWindow.Visible = not TeleportWindow.Visible
 end)
-verticalOffset = verticalOffset + 42
-
--- KickFling (DropKick) button with bind Z
-local _, kickFlingRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "kick fling: off | bind: z", function()
-    ToggleKickFling()
-end)
-UIComponentRegistry["kickfling"] = kickFlingRowBtn
 verticalOffset = verticalOffset + 42
 
 local _, menuToggleRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
@@ -516,7 +509,6 @@ PopulateKeybindsDisplay = function()
         {"Box ESP", "BoxEsp", ScriptSense.Config.Keybinds.BoxEsp},
         {"Anti-Aim", "AntiAim", ScriptSense.Config.Keybinds.AntiAim},
         {"TouchFling", "TouchFling", ScriptSense.Config.Keybinds.TouchFling},
-        {"KickFling", "KickFling", ScriptSense.Config.Keybinds.KickFling},
         {"Menu Toggle", "MenuToggle", ScriptSense.Config.Keybinds.MenuToggle},
     }
 
@@ -666,7 +658,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. TouchFling Engine (Strength set to 1000)
+-- 3. TouchFling Engine
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     local detection = Instance.new("Decal")
     detection.Name = "juisdfj0i32i0eidsuf0iok"
@@ -698,7 +690,7 @@ startFlingThread = function()
     coroutine.resume(flingThread)
 end
 
--- 4. Native Drawing Skeleton ESP Rendering Engine (Pure Skeleton)
+-- 4. Native Drawing Skeleton ESP Rendering Engine
 local DrawingSkeletonRegistry = {}
 
 local function PurgeDrawingSkeleton(playerTarget)
@@ -790,7 +782,7 @@ Players.PlayerRemoving:Connect(function(playerObj)
     PurgeDrawingSkeleton(playerObj)
 end)
 
--- 5. Native Drawing Box ESP Rendering Engine (Separate Box ESP)
+-- 5. Native Drawing Box ESP Rendering Engine
 local DrawingBoxRegistry = {}
 
 local function PurgeDrawingBox(playerTarget)
@@ -939,9 +931,6 @@ RunService.RenderStepped:Connect(function()
     if UIComponentRegistry["touchfling"] then 
         UIComponentRegistry["touchfling"].Text = "touchfling: " .. (ScriptSense.Config.TouchFlingEnabled and "on" or "off") .. " | bind: " .. GetKeyName(ScriptSense.Config.Keybinds.TouchFling) 
     end
-    if UIComponentRegistry["kickfling"] then
-        UIComponentRegistry["kickfling"].Text = "kick fling: " .. (ScriptSense.Config.KickFlingEnabled and "on" or "off") .. " | bind: " .. GetKeyName(ScriptSense.Config.Keybinds.KickFling)
-    end
     if UIComponentRegistry["menutoggle"] then
         UIComponentRegistry["menutoggle"].Text = "keybinds menu | bind: " .. GetKeyName(ScriptSense.Config.Keybinds.MenuToggle)
     end
@@ -984,7 +973,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if ScriptSense.Config.TouchFlingEnabled then
                 startFlingThread()
             end
-        elseif input.KeyCode == ScriptSense.Config.Keybinds.KickFling then
+        elseif input.KeyCode == Enum.KeyCode.Z then
             ToggleKickFling()
         elseif input.KeyCode == ScriptSense.Config.Keybinds.MenuToggle then
             ToggleKeybindsMenu()
