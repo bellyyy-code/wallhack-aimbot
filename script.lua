@@ -1,9 +1,3 @@
---[========================================================================================[
-    PROJECT: SCRIPT SENSE ULTIMATE SUITE - ENTERPRISE EDITION (PURE SKELETON + BOX ESP)
-    VERSION: 6.5.0 [PRODUCTION GRADE - SAFE DRAWING WRAPPER]
-    DESCRIPTION: Updated to version 6.5.0, fully synchronized version numbers across all UI elements and logs.
---]========================================================================================
-
 local ScriptSense = {}
 ScriptSense.Version = "6.5.0"
 ScriptSense.Active = true
