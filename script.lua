@@ -804,7 +804,7 @@ RunService.RenderStepped:Connect(function()
                     local successCreate, boxObj = pcall(function()
                         local sq = Drawing.new("Square")
                         sq.Visible = false
-                        sq.Color = Color3.fromRGB(0, 255, 255)
+                        sq.Color = Color3.fromRGB(255, 255, 255)
                         sq.Thickness = 1.5
                         sq.Transparency = 1
                         sq.Filled = false
