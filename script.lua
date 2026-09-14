@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.7.4"
+ScriptSense.Version = "7.8.1"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -187,11 +187,11 @@ ArrowStroke.Color = Color3.fromRGB(60, 60, 60)
 ArrowStroke.Thickness = 1
 ArrowStroke.Parent = MenuToggleArrow
 
--- Main Control Panel Frame (Starts in Center for Intro Animation)
+-- Main Control Panel Frame (Starts small & centered)
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 260, 0, 480)
-MainControlPanel.Position = UDim2.new(0.5, -130, 0.5, -240)
+MainControlPanel.Size = UDim2.new(0, 0, 0, 0)
+MainControlPanel.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
 MainControlPanel.ClipsDescendants = true
@@ -215,7 +215,7 @@ MainTitleLabel.Size = UDim2.new(1, -15, 1, 0)
 MainTitleLabel.Position = UDim2.new(0, 12, 0, 0)
 MainTitleLabel.BackgroundTransparency = 1
 MainTitleLabel.RichText = true
-MainTitleLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+MainTitleLabel.Text = ""
 MainTitleLabel.Font = Enum.Font.GothamBold
 MainTitleLabel.TextSize = 12
 MainTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -258,11 +258,41 @@ MainListLayout.Parent = MainContainer
 
 local isPanelVisible = true
 
--- INTRO ANIMATION: Center for 2 seconds, then slide left
+-- INTRO ANIMATION & 2-SECOND TYPEWRITER EFFECT
 task.spawn(function()
-    task.wait(2)
-    local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-    local slideTween = TweenService:Create(MainControlPanel, tweenInfo, {Position = UDim2.new(0, 20, 0, 65)})
+    -- Шаг 1: Плавное открытие панели по центру
+    local appearTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 260, 0, 480),
+        Position = UDim2.new(0.5, -130, 0.5, -240)
+    })
+    appearTween:Play()
+
+    -- Шаг 2: Печать текста по 1 букве ровно за 2 секунды
+    local rawString = "SCRIPT SENSE v" .. ScriptSense.Version
+    local interval = 2 / #rawString
+
+    for i = 1, #rawString do
+        local currentSub = string.sub(rawString, 1, i)
+        local formatted = ""
+        if i <= 6 then
+            formatted = '<font color="#FFFFFF">' .. currentSub .. '</font>'
+        elseif i <= 12 then
+            local subSense = string.sub(currentSub, 8)
+            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">' .. subSense .. '</font>'
+        else
+            local subVer = string.sub(currentSub, 14)
+            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">' .. subVer .. '</font>'
+        end
+        MainTitleLabel.Text = formatted
+        task.wait(interval)
+    end
+
+    appearTween.Completed:Wait()
+
+    -- Шаг 3: Плавный уход влево на рабочую позицию
+    local slideTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 20, 0, 65)
+    })
     slideTween:Play()
 end)
 
