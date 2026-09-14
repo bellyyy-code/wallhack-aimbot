@@ -797,75 +797,47 @@ RunService.RenderStepped:Connect(function(dt)
                 if rootPart and head and humanoid and humanoid.Health > 0 then
                     local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
                     if onScreen then
+                        local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                        local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+                        local height = math.abs(headPos.Y - legPos.Y)
+                        local width = height / 2
+
                         if ScriptSense.Config.BoxEspEnabled then
-                            local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                            local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
-                            local height = math.abs(headPos.Y - legPos.Y)
-                            local width = height / 2
-
-                            local box = Instance.new("Frame")
-                            box.Name = "BoxESP"
-                            box.Size = UDim2.new(0, width, 0, height)
-                            box.Position = UDim2.new(0, rootPos.X - width/2, 0, headPos.Y)
-                            box.BackgroundTransparency = 1
-                            box.BorderSizePixel = 0
-                            box.Parent = ESPContainer
-
-                            local boxStroke = Instance.new("UIStroke")
-                            boxStroke.Color = Color3.fromRGB(255, 50, 50)
-                            boxStroke.Thickness = 1
-                            box.Parent = box
-                            boxStroke.Parent = box
+                            local box = Drawing.new("Square")
+                            box.Visible = true
+                            box.Color = Color3.fromRGB(255, 255, 255)
+                            box.Thickness = 1
+                            box.Filled = false
+                            box.Size = Vector2.new(width, height)
+                            box.Position = Vector2.new(rootPos.X - width / 2, headPos.Y)
                             table.insert(activeDrawings, box)
                         end
 
                         if ScriptSense.Config.NameEspEnabled then
-                            local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1, 0))
-                            local nameLabel = Instance.new("TextLabel")
-                            nameLabel.Name = "NameESP"
-                            nameLabel.Size = UDim2.new(0, 150, 0, 20)
-                            nameLabel.Position = UDim2.new(0, headPos.X - 75, 0, headPos.Y - 20)
-                            nameLabel.BackgroundTransparency = 1
-                            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            nameLabel.TextSize = 12
-                            nameLabel.Font = Enum.Font.GothamBold
-                            nameLabel.Text = player.DisplayName .. " (@" .. player.Name .. ")"
-                            nameLabel.Parent = ESPContainer
-                            table.insert(activeDrawings, nameLabel)
+                            local nameText = Drawing.new("Text")
+                            nameText.Visible = true
+                            nameText.Color = Color3.fromRGB(255, 255, 255)
+                            nameText.Size = 14
+                            nameText.Center = true
+                            nameText.Outline = true
+                            nameText.Text = player.Name
+                            nameText.Position = Vector2.new(rootPos.X, headPos.Y - 18)
+                            table.insert(activeDrawings, nameText)
                         end
 
                         if ScriptSense.Config.SkeletonEspEnabled then
-                            local function drawBone(part1, part2)
-                                if part1 and part2 then
-                                    local p1, s1 = Camera:WorldToViewportPoint(part1.Position)
-                                    local p2, s2 = Camera:WorldToViewportPoint(part2.Position)
-                                    if s1 and s2 then
-                                        local line = Instance.new("Frame")
-                                        local dist = (Vector2.new(p1.X, p1.Y) - Vector2.new(p2.X, p2.Y)).Magnitude
-                                        line.Size = UDim2.new(0, 1, 0, dist)
-                                        line.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
-                                        line.AnchorPoint = Vector2.new(0.5, 0.5)
-                                        line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                                        line.BorderSizePixel = 0
-                                        line.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X)) - 90
-                                        line.Parent = ESPContainer
-                                        table.insert(activeDrawings, line)
-                                    end
-                                end
+                            local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+                            if torso and head then
+                                local hPos = Camera:WorldToViewportPoint(head.Position)
+                                local tPos = Camera:WorldToViewportPoint(torso.Position)
+                                local line = Drawing.new("Line")
+                                line.Visible = true
+                                line.Color = Color3.fromRGB(255, 255, 255)
+                                line.Thickness = 1
+                                line.From = Vector2.new(hPos.X, hPos.Y)
+                                line.To = Vector2.new(tPos.X, tPos.Y)
+                                table.insert(activeDrawings, line)
                             end
-
-                            local upperTorso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-                            local lowerTorso = char:FindFirstChild("LowerTorso") or upperTorso
-                            local leftUpperArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
-                            local rightUpperArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
-                            local leftUpperLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
-                            local rightUpperLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
-
-                            drawBone(head, upperTorso)
-                            drawBone(upperTorso, leftUpperArm)
-                            drawBone(upperTorso, rightUpperArm)
-                            drawBone(lowerTorso, leftUpperLeg)
-                            drawBone(lowerTorso, rightUpperLeg)
                         end
                     end
                 end
@@ -873,3 +845,5 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 end)
+
+return ScriptSense
