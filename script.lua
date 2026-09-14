@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.6.7"
+ScriptSense.Version = "7.6.6"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -60,7 +60,6 @@ ScriptSense.Config = {
     AimbotSmoothness = 4,
     AimbotFovRadius = 150,
     CurrentSpinAngle = 0,
-    TpTarget = "",
 
     Keybinds = {
         Wallhack = Enum.KeyCode.G,
@@ -86,7 +85,7 @@ end
 local successHui, huiContainer = pcall(function() return gethui() end)
 if successHui and huiContainer then
     for _, child in ipairs(huiContainer:GetChildren()) do
-        if child.Name == "KilasikScriptSenseGUI" or child.Name == "KilasikESPContainer" then
+        if child.Name == "ScriptSenseEnterpriseGUI" or child.Name == "ScriptSenseESPContainer" then
             SafeDestroy(child)
         end
     end
@@ -94,7 +93,7 @@ end
 
 pcall(function()
     for _, child in ipairs(CoreGui:GetChildren()) do
-        if child.Name == "KilasikScriptSenseGUI" or child.Name == "KilasikESPContainer" then
+        if child.Name == "ScriptSenseEnterpriseGUI" or child.Name == "ScriptSenseESPContainer" then
             SafeDestroy(child)
         end
     end
@@ -107,27 +106,16 @@ if not RootGuiParent then RootGuiParent = LocalPlayer:WaitForChild("PlayerGui") 
 
 -- Main UI Container
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KilasikScriptSenseGUI"
+ScreenGui.Name = "ScriptSenseEnterpriseGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = RootGuiParent
 
 local ESPContainer = Instance.new("Folder")
-ESPContainer.Name = "KilasikESPContainer"
+ESPContainer.Name = "ScriptSenseESPContainer"
 ESPContainer.Parent = ScreenGui
 
 local IsMobileDevice = UserInputService.TouchEnabled
-
--- FOV Circle Drawing Initialization
-local fovCircle = nil
-pcall(function()
-    fovCircle = Drawing.new("Circle")
-    fovCircle.Visible = false
-    fovCircle.Thickness = 1
-    fovCircle.Color = Color3.fromRGB(255, 255, 255)
-    fovCircle.Filled = false
-    fovCircle.Transparency = 0.8
-end)
 
 -- Watermark Container
 local WatermarkContainer = Instance.new("Frame")
@@ -179,7 +167,7 @@ ArrowStroke.Thickness = 1
 ArrowStroke.Transparency = 1
 ArrowStroke.Parent = MenuToggleArrow
 
--- Main Control Panel Frame
+-- Main Control Panel Frame (Strictly fixed, non-draggable)
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
 MainControlPanel.Size = UDim2.new(0, 250, 0, 480)
@@ -208,9 +196,9 @@ MainTitleLabel.Size = UDim2.new(1, -15, 1, 0)
 MainTitleLabel.Position = UDim2.new(0, 12, 0, 0)
 MainTitleLabel.BackgroundTransparency = 1
 MainTitleLabel.RichText = true
-MainTitleLabel.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+MainTitleLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
 MainTitleLabel.Font = Enum.Font.GothamBold
-MainTitleLabel.TextSize = 11
+MainTitleLabel.TextSize = 13
 MainTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 MainTitleLabel.Parent = MainTitleBar
 
@@ -228,9 +216,9 @@ MainFooterLabel.Size = UDim2.new(1, -15, 1, 0)
 MainFooterLabel.Position = UDim2.new(0, 12, 0, 0)
 MainFooterLabel.BackgroundTransparency = 1
 MainFooterLabel.RichText = true
-MainFooterLabel.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+MainFooterLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
 MainFooterLabel.Font = Enum.Font.GothamBold
-MainFooterLabel.TextSize = 10
+MainFooterLabel.TextSize = 11
 MainFooterLabel.TextXAlignment = Enum.TextXAlignment.Left
 MainFooterLabel.Parent = MainFooterBar
 
@@ -258,7 +246,7 @@ end
 
 MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 
--- Keybinds Menu Window
+-- Keybinds Menu Window (Strictly fixed, non-draggable)
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
 KeybindsMenuWindow.Size = UDim2.new(0, 320, 0, 420)
@@ -285,9 +273,9 @@ KbTitle.Size = UDim2.new(1, -35, 1, 0)
 KbTitle.Position = UDim2.new(0, 12, 0, 0)
 KbTitle.BackgroundTransparency = 1
 KbTitle.RichText = true
-KbTitle.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> — KEYBIND MANAGER'
+KbTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> — KEYBIND MANAGER'
 KbTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-KbTitle.TextSize = 12
+KbTitle.TextSize = 13
 KbTitle.Font = Enum.Font.GothamBold
 KbTitle.TextXAlignment = Enum.TextXAlignment.Left
 KbTitle.Parent = KbTitleBar
@@ -324,104 +312,6 @@ KbListLayout.Parent = KbContainer
 local ToggleKeybindsMenu = function()
     KeybindsMenuWindow.Visible = not KeybindsMenuWindow.Visible
 end
-
--- Fling GUI Window (Dedicated separate window)
-local FlingGuiWindow = Instance.new("Frame")
-FlingGuiWindow.Name = "FlingGuiWindow"
-FlingGuiWindow.Size = UDim2.new(0, 240, 0, 130)
-FlingGuiWindow.Position = UDim2.new(0.5, 130, 0.5, -210)
-FlingGuiWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-FlingGuiWindow.BorderSizePixel = 0
-FlingGuiWindow.ClipsDescendants = true
-FlingGuiWindow.Visible = false
-FlingGuiWindow.Parent = ScreenGui
-
-local FlingStroke = Instance.new("UIStroke")
-FlingStroke.Color = Color3.fromRGB(70, 70, 70)
-FlingStroke.Thickness = 2
-FlingStroke.Parent = FlingGuiWindow
-
-local FlingTitleBar = Instance.new("Frame")
-FlingTitleBar.Size = UDim2.new(1, 0, 0, 35)
-FlingTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-FlingTitleBar.BorderSizePixel = 0
-FlingTitleBar.Parent = FlingGuiWindow
-
-local FlingTitle = Instance.new("TextLabel")
-FlingTitle.Size = UDim2.new(1, -35, 1, 0)
-FlingTitle.Position = UDim2.new(0, 12, 0, 0)
-FlingTitle.BackgroundTransparency = 1
-FlingTitle.RichText = true
-FlingTitle.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">FLING GUI</font>'
-FlingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlingTitle.TextSize = 12
-FlingTitle.Font = Enum.Font.GothamBold
-FlingTitle.TextXAlignment = Enum.TextXAlignment.Left
-FlingTitle.Parent = FlingTitleBar
-
-local FlingCloseBtn = Instance.new("TextButton")
-FlingCloseBtn.Size = UDim2.new(0, 35, 0, 35)
-FlingCloseBtn.Position = UDim2.new(1, -35, 0, 0)
-FlingCloseBtn.BackgroundTransparency = 1
-FlingCloseBtn.Text = "✕"
-FlingCloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-FlingCloseBtn.Font = Enum.Font.GothamBold
-FlingCloseBtn.TextSize = 14
-FlingCloseBtn.Parent = FlingTitleBar
-
-FlingCloseBtn.MouseButton1Click:Connect(function()
-    FlingGuiWindow.Visible = false
-end)
-
-local FlingActionButton = Instance.new("TextButton")
-FlingActionButton.Size = UDim2.new(1, -24, 0, 45)
-FlingActionButton.Position = UDim2.new(0, 12, 0, 55)
-FlingActionButton.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
-FlingActionButton.BorderSizePixel = 0
-FlingActionButton.Text = "Включить Fling"
-FlingActionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlingActionButton.Font = Enum.Font.GothamBold
-FlingActionButton.TextSize = 13
-FlingActionButton.Parent = FlingGuiWindow
-
-local flingActive = false
-FlingActionButton.MouseButton1Click:Connect(function()
-    flingActive = not flingActive
-    if flingActive then
-        FlingActionButton.Text = "Выключить Fling"
-        FlingActionButton.BackgroundColor3 = Color3.fromRGB(50, 170, 50)
-        task.spawn(function()
-            while flingActive do
-                local character = LocalPlayer.Character
-                if character and character:FindFirstChild("HumanoidRootPart") then
-                    local rootPart = character.HumanoidRootPart
-                    local bav = rootPart:FindFirstChild("KilasikFlingVelocity")
-                    if not bav then
-                        bav = Instance.new("BodyAngularVelocity")
-                        bav.Name = "KilasikFlingVelocity"
-                        bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                        bav.AngularVelocity = Vector3.new(0, 99999, 0)
-                        bav.Parent = rootPart
-                    end
-                end
-                task.wait()
-            end
-            local character = LocalPlayer.Character
-            if character and character:FindFirstChild("HumanoidRootPart") then
-                local bav = character.HumanoidRootPart:FindFirstChild("KilasikFlingVelocity")
-                if bav then bav:Destroy() end
-            end
-        end)
-    else
-        FlingActionButton.Text = "Включить Fling"
-        FlingActionButton.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
-        local character = LocalPlayer.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local bav = character.HumanoidRootPart:FindFirstChild("KilasikFlingVelocity")
-            if bav then bav:Destroy() end
-        end
-    end
-end)
 
 local controlRowUpdateCallbacks = {}
 local controlRowFrames = {}
@@ -524,7 +414,7 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
             onTextChanged(num)
             textBox.Text = tostring(num)
         else
-            onTextChanged(textBox.Text)
+            textBox.Text = tostring(initialValue)
         end
     end)
 
@@ -553,7 +443,7 @@ for featureName, keyEnum in pairs(ScriptSense.Config.Keybinds) do
     end)
 end
 
--- Populate Panel Rows
+-- Populate Panel Rows with live state updates & TextBoxes for numerical values
 CreateControlRow(MainContainer, "wallhack: off | bind: g", function()
     ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
 end, function(btn)
@@ -569,8 +459,7 @@ end, function(btn)
 end)
 
 CreateTextBoxRow(MainContainer, "aimbot | fov radius", ScriptSense.Config.AimbotFovRadius, function(val)
-    ScriptSense.Config.AimbotFovRadius = tonumber(val) or ScriptSense.Config.AimbotFovRadius
-    if fovCircle then fovCircle.Radius = ScriptSense.Config.AimbotFovRadius end
+    ScriptSense.Config.AimbotFovRadius = val
 end)
 
 CreateControlRow(MainContainer, "godmode: off | bind: c", function()
@@ -620,7 +509,7 @@ end, function(btn)
 end)
 
 CreateTextBoxRow(MainContainer, "speedhack | speed", ScriptSense.Config.SpeedhackSpeed, function(val)
-    ScriptSense.Config.SpeedhackSpeed = tonumber(val) or ScriptSense.Config.SpeedhackSpeed
+    ScriptSense.Config.SpeedhackSpeed = val
 end)
 
 CreateControlRow(MainContainer, "anti-aim: off | bind: u", function()
@@ -631,41 +520,18 @@ end, function(btn)
 end)
 
 CreateTextBoxRow(MainContainer, "anti aim | speed", ScriptSense.Config.SpinSpeed, function(val)
-    ScriptSense.Config.SpinSpeed = tonumber(val) or ScriptSense.Config.SpinSpeed
+    ScriptSense.Config.SpinSpeed = val
 end)
 
 CreateTextBoxRow(MainContainer, "anti aim | angle", ScriptSense.Config.AntiAimHeadAngle, function(val)
-    ScriptSense.Config.AntiAimHeadAngle = tonumber(val) or ScriptSense.Config.AntiAimHeadAngle
-end)
-
--- TP GUI Integration
-CreateTextBoxRow(MainContainer, "tp | target name", ScriptSense.Config.TpTarget, function(val)
-    ScriptSense.Config.TpTarget = tostring(val)
-end)
-
-CreateControlRow(MainContainer, "teleport to player", function()
-    local targetName = string.lower(ScriptSense.Config.TpTarget or "")
-    if targetName == "" then return end
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and (string.sub(string.lower(player.Name), 1, #targetName) == targetName or string.sub(string.lower(player.DisplayName), 1, #targetName) == targetName) then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
-            end
-            break
-        end
-    end
-end)
-
--- Open Fling GUI Button
-CreateControlRow(MainContainer, "open fling gui", function()
-    FlingGuiWindow.Visible = not FlingGuiWindow.Visible
+    ScriptSense.Config.AntiAimHeadAngle = val
 end)
 
 CreateControlRow(MainContainer, "keybinds manager", function()
     ToggleKeybindsMenu()
 end)
 
--- Global Keybinds Listener
+-- Robust Global Keybinds Listener
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -705,7 +571,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Main Loop
+-- Fully Implemented Cheat Loops & Mechanics (ESP, Aimbot, Fly, AntiAim, Speedhack, Godmode)
 local activeDrawings = {}
 
 local function ClearDrawings()
@@ -716,16 +582,7 @@ local function ClearDrawings()
 end
 
 RunService.RenderStepped:Connect(function(dt)
-    if fovCircle then
-        if ScriptSense.Config.AimbotEnabled or ScriptSense.Config.FovCircleEnabled then
-            fovCircle.Visible = true
-            fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-            fovCircle.Radius = ScriptSense.Config.AimbotFovRadius
-        else
-            fovCircle.Visible = false
-        end
-    end
-
+    -- Speedhack implementation
     if ScriptSense.Config.SpeedhackEnabled then
         local char = LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -734,6 +591,7 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
+    -- Anti-Aim Spinbot implementation
     if ScriptSense.Config.AntiAimEnabled then
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -743,6 +601,7 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
+    -- Aimbot Logic
     if ScriptSense.Config.AimbotEnabled and not IsRobloxMenuOpen() then
         local closestPlayer = nil
         local shortestDist = ScriptSense.Config.AimbotFovRadius
@@ -772,6 +631,7 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
+    -- ESP Rendering Loop (Box ESP, Skeleton ESP, Name ESP)
     ClearDrawings()
     if ScriptSense.Config.BoxEspEnabled or ScriptSense.Config.SkeletonEspEnabled or ScriptSense.Config.NameEspEnabled then
         for _, player in ipairs(Players:GetPlayers()) do
@@ -784,6 +644,7 @@ RunService.RenderStepped:Connect(function(dt)
                 if rootPart and head and humanoid and humanoid.Health > 0 then
                     local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
                     if onScreen then
+                        -- Box ESP
                         if ScriptSense.Config.BoxEspEnabled then
                             local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
                             local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
@@ -806,6 +667,7 @@ RunService.RenderStepped:Connect(function(dt)
                             table.insert(activeDrawings, box)
                         end
 
+                        -- Skeleton ESP
                         if ScriptSense.Config.SkeletonEspEnabled then
                             local function drawLine(part1, part2)
                                 if part1 and part2 then
@@ -843,6 +705,7 @@ RunService.RenderStepped:Connect(function(dt)
                             if lowerTorso and rightUpperLeg then drawLine(lowerTorso, rightUpperLeg) end
                         end
 
+                        -- Name ESP
                         if ScriptSense.Config.NameEspEnabled then
                             local nameLabel = Instance.new("TextLabel")
                             nameLabel.Name = "NameESP"
@@ -864,27 +727,28 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
+-- Update MainContainer CanvasSize automatically
 MainListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     MainContainer.CanvasSize = UDim2.new(0, 0, 0, MainListLayout.AbsoluteContentSize.Y + 10)
 end)
 
--- Intro Sequence with KILASIK SCRIPT SENSE branding
+-- Intro Sequence with Version Integration
 task.spawn(function()
-    local fullText = "KILASIK SCRIPT SENSE v" .. ScriptSense.Version
+    local fullText = "SCRIPT SENSE v" .. ScriptSense.Version
     local totalChars = #fullText
     local totalDuration = 2.0
     local charDelay = totalDuration / totalChars
 
     local function getPartialText(count)
-        local part1 = string.sub("KILASIK", 1, math.min(count, 7))
-        local res = '<font color="#FFFFFF">' .. part1 .. '</font>'
-        if count > 7 then
-            local part2 = string.sub(" SCRIPT SENSE", 1, math.min(count - 7, 13))
-            res = res .. '<font color="#FF0000">' .. part2 .. '</font>'
+        local scriptPart = string.sub("SCRIPT", 1, math.min(count, 6))
+        local res = '<font color="#FFFFFF">' .. scriptPart .. '</font>'
+        if count > 6 then
+            local sensePart = string.sub(" SENSE", 1, math.min(count - 6, 6))
+            res = res .. '<font color="#FF0000">' .. sensePart .. '</font>'
         end
-        if count > 20 then
-            local part3 = string.sub(" v" .. ScriptSense.Version, 1, count - 20)
-            res = res .. '<font color="#AAAAAA">' .. part3 .. '</font>'
+        if count > 12 then
+            local verPart = string.sub(" v" .. ScriptSense.Version, 1, count - 12)
+            res = res .. '<font color="#AAAAAA">' .. verPart .. '</font>'
         end
         return res
     end
@@ -893,7 +757,7 @@ task.spawn(function()
         WatermarkLabel.Text = getPartialText(i)
         task.wait(charDelay)
     end
-    WatermarkLabel.Text = '<font color="#FFFFFF">KILASIK</font> <font color="#FF0000">SCRIPT SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
 
     local currentAbsPos = WatermarkContainer.AbsolutePosition
     WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
