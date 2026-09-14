@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.7.0"
+ScriptSense.Version = "7.7.1"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -118,7 +118,7 @@ ESPContainer.Parent = ScreenGui
 
 local IsMobileDevice = UserInputService.TouchEnabled
 
--- FOV Circle Drawing Initialization
+-- FOV Circle Drawing Initialization (Made extremely round with NumSides)
 local fovCircle = nil
 pcall(function()
     fovCircle = Drawing.new("Circle")
@@ -127,6 +127,7 @@ pcall(function()
     fovCircle.Color = Color3.fromRGB(255, 255, 255)
     fovCircle.Filled = false
     fovCircle.Transparency = 0.8
+    fovCircle.NumSides = 64
 end)
 
 -- Watermark Container
@@ -154,7 +155,7 @@ WatermarkLabel.BackgroundTransparency = 1
 WatermarkLabel.TextSize = 24
 WatermarkLabel.Font = Enum.Font.GothamBold
 WatermarkLabel.RichText = true
-WatermarkLabel.Text = ""
+WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font>'
 WatermarkLabel.TextXAlignment = Enum.TextXAlignment.Left
 WatermarkLabel.LayoutOrder = 1
 WatermarkLabel.Parent = WatermarkContainer
@@ -166,7 +167,7 @@ MenuToggleArrow.Size = UDim2.new(0, 26, 0, 26)
 MenuToggleArrow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MenuToggleArrow.BackgroundTransparency = 1
 MenuToggleArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
-MenuToggleArrow.TextTransparency = 1
+MenuToggleArrow.TextTransparency = 0
 MenuToggleArrow.TextSize = 13
 MenuToggleArrow.Font = Enum.Font.GothamBold
 MenuToggleArrow.Text = (not IsMobileDevice) and "▼" or "▲"
@@ -176,7 +177,7 @@ MenuToggleArrow.Parent = WatermarkContainer
 local ArrowStroke = Instance.new("UIStroke")
 ArrowStroke.Color = Color3.fromRGB(60, 60, 60)
 ArrowStroke.Thickness = 1
-ArrowStroke.Transparency = 1
+ArrowStroke.Transparency = 0
 ArrowStroke.Parent = MenuToggleArrow
 
 -- Main Control Panel Frame
@@ -193,7 +194,7 @@ MainControlPanel.Parent = ScreenGui
 local PanelStroke = Instance.new("UIStroke")
 PanelStroke.Color = Color3.fromRGB(50, 50, 50)
 PanelStroke.Thickness = 2
-PanelStroke.Transparency = 1
+PanelStroke.Transparency = 0
 PanelStroke.Parent = MainControlPanel
 
 -- Main Panel Title Bar
@@ -272,6 +273,7 @@ KeybindsMenuWindow.Parent = ScreenGui
 local KbStroke = Instance.new("UIStroke")
 KbStroke.Color = Color3.fromRGB(70, 70, 70)
 KbStroke.Thickness = 2
+KbStroke.Transparency = 0
 KbStroke.Parent = KeybindsMenuWindow
 
 local KbTitleBar = Instance.new("Frame")
@@ -325,7 +327,7 @@ local ToggleKeybindsMenu = function()
     KeybindsMenuWindow.Visible = not KeybindsMenuWindow.Visible
 end
 
--- SCRIPT SENSE FLING GUI Window (Dedicated separate window)
+-- SCRIPT SENSE FLING GUI Window
 local FlingGuiWindow = Instance.new("Frame")
 FlingGuiWindow.Name = "FlingGuiWindow"
 FlingGuiWindow.Size = UDim2.new(0, 240, 0, 130)
@@ -339,6 +341,7 @@ FlingGuiWindow.Parent = ScreenGui
 local FlingStroke = Instance.new("UIStroke")
 FlingStroke.Color = Color3.fromRGB(70, 70, 70)
 FlingStroke.Thickness = 2
+FlingStroke.Transparency = 0
 FlingStroke.Parent = FlingGuiWindow
 
 local FlingTitleBar = Instance.new("Frame")
@@ -432,20 +435,20 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = false
+    rowFrame.Visible = true
     rowFrame.Parent = parent
 
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Thickness = 1
-    stroke.Transparency = 1
+    stroke.Transparency = 0
     stroke.Parent = rowFrame
 
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, 0, 1, 0)
     button.BackgroundTransparency = 1
     button.TextColor3 = Color3.fromRGB(230, 230, 230)
-    button.TextTransparency = 1
+    button.TextTransparency = 0
     button.TextSize = 13
     button.Font = Enum.Font.GothamMedium
     button.Text = initialText
@@ -479,20 +482,20 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = false
+    rowFrame.Visible = true
     rowFrame.Parent = parent
 
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Thickness = 1
-    stroke.Transparency = 1
+    stroke.Transparency = 0
     stroke.Parent = rowFrame
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0.6, 0, 1, 0)
     label.Position = UDim2.new(0, 12, 0, 0)
     label.BackgroundTransparency = 1
-    label.TextTransparency = 1
+    label.TextTransparency = 0
     label.TextColor3 = Color3.fromRGB(230, 230, 230)
     label.TextSize = 13
     label.Font = Enum.Font.GothamMedium
@@ -638,7 +641,6 @@ CreateTextBoxRow(MainContainer, "anti aim | angle", ScriptSense.Config.AntiAimHe
     ScriptSense.Config.AntiAimHeadAngle = tonumber(val) or ScriptSense.Config.AntiAimHeadAngle
 end)
 
--- TP GUI Integration
 CreateTextBoxRow(MainContainer, "tp | target name", ScriptSense.Config.TpTarget, function(val)
     ScriptSense.Config.TpTarget = tostring(val)
 end)
@@ -656,7 +658,6 @@ CreateControlRow(MainContainer, "teleport to player", function()
     end
 end)
 
--- Open Fling GUI Button
 CreateControlRow(MainContainer, "open fling gui", function()
     FlingGuiWindow.Visible = not FlingGuiWindow.Visible
 end)
@@ -716,11 +717,13 @@ local function ClearDrawings()
 end
 
 RunService.RenderStepped:Connect(function(dt)
+    -- FOV Circle strictly tied to AimbotEnabled, made extremely smooth/round with NumSides = 64
     if fovCircle then
-        if ScriptSense.Config.AimbotEnabled or ScriptSense.Config.FovCircleEnabled then
+        if ScriptSense.Config.AimbotEnabled then
             fovCircle.Visible = true
             fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
             fovCircle.Radius = ScriptSense.Config.AimbotFovRadius
+            fovCircle.NumSides = 64
         else
             fovCircle.Visible = false
         end
@@ -734,7 +737,6 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- Anti-Aim Fix with ShiftLock (disables AutoRotate override conflict and spins correctly)
     if ScriptSense.Config.AntiAimEnabled then
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
