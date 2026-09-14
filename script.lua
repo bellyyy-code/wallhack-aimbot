@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "6.5.0"
+ScriptSense.Version = "6.6.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -296,7 +296,7 @@ local function GetKeyName(keyCode)
     return string.lower(name)
 end
 
--- DropKick execution function (Made by c00lkids103)
+-- DropKick execution function
 local function TriggerDropKick()
     local discord = "https://discord.gg/AeuSH2EQK"
     if setclipboard then
@@ -304,8 +304,8 @@ local function TriggerDropKick()
     end
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "c00lkids103 Script",
-            Text = "Discord copied! Join: " .. discord .. "\nMade by c00lkids103",
+            Title = "DropKick Script",
+            Text = "Discord copied! Join: " .. discord,
             Duration = 10,
             Button1 = "Okay"
         })
@@ -320,7 +320,7 @@ local function TriggerDropKick()
             warn("❌ Failed to load DropKick script: " .. tostring(err))
             pcall(function()
                 game:GetService("StarterGui"):SetCore("SendNotification", {
-                    Title = "c00lkids103 Script",
+                    Title = "DropKick Script",
                     Text = "Failed to load DropKick script.\nCheck your executor or internet.",
                     Duration = 8,
                 })
@@ -410,8 +410,8 @@ CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
 end)
 verticalOffset = verticalOffset + 42
 
--- DropKick (Kick Fling) button by c00lkids103 with bind Z
-CreateControlRow(MainControlPanel, verticalOffset, "kick fling (c00lkids103) | bind: z", function()
+-- DropKick (Kick Fling) button with bind Z
+CreateControlRow(MainControlPanel, verticalOffset, "kick fling | bind: z", function()
     TriggerDropKick()
 end)
 verticalOffset = verticalOffset + 42
@@ -424,7 +424,7 @@ verticalOffset = verticalOffset + 42
 
 -- Intro Sequence (2s Typewriter)
 task.spawn(function()
-    local fullText = "SCRIPT SENSE [v6.5.0]"
+    local fullText = "SCRIPT SENSE [v6.6.0]"
     local totalChars = #fullText
     local totalDuration = 2.0
     local charDelay = totalDuration / totalChars
@@ -439,7 +439,7 @@ task.spawn(function()
         end
         
         if count > 12 then
-            local spaceAndVer = string.sub(" [v6.5.0]", 1, count - 12)
+            local spaceAndVer = string.sub(" [v6.6.0]", 1, count - 12)
             res = res .. '<font color="#AAAAAA">' .. spaceAndVer .. '</font>'
         end
         
@@ -450,7 +450,7 @@ task.spawn(function()
         WatermarkLabel.Text = getPartialText(i)
         task.wait(charDelay)
     end
-    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">[v6.5.0]</font>'
+    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">[v6.6.0]</font>'
 
     local currentAbsPos = WatermarkContainer.AbsolutePosition
     WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
@@ -530,7 +530,7 @@ PopulateKeybindsDisplay = function()
         {"Box ESP", "BoxEsp", ScriptSense.Config.Keybinds.BoxEsp},
         {"Anti-Aim", "AntiAim", ScriptSense.Config.Keybinds.AntiAim},
         {"TouchFling", "TouchFling", ScriptSense.Config.Keybinds.TouchFling},
-        {"KickFling (c00lkids103)", "KickFling", ScriptSense.Config.Keybinds.KickFling},
+        {"KickFling", "KickFling", ScriptSense.Config.Keybinds.KickFling},
         {"Menu Toggle", "MenuToggle", ScriptSense.Config.Keybinds.MenuToggle},
     }
 
@@ -680,7 +680,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. TouchFling Engine (Fling strength set to 1000)
+-- 3. TouchFling Engine (Strength set to 1000)
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     local detection = Instance.new("Decal")
     detection.Name = "juisdfj0i32i0eidsuf0iok"
@@ -1003,4 +1003,4 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-print("[ScriptSense Enterprise v6.5.0]: Loaded successfully.")
+print("[ScriptSense Enterprise v6.6.0]: Loaded successfully.")
