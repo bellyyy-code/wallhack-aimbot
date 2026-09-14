@@ -1,8 +1,3 @@
-local ScriptSense = {}
-ScriptSense.Version = "7.9.1"
-ScriptSense.Active = true
-
--- Services Retrieval
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -18,6 +13,10 @@ if not LocalPlayer then
 end
 
 local Camera = Workspace.CurrentCamera
+
+local ScriptSense = {}
+ScriptSense.Version = "7.9.1"
+ScriptSense.Active = true
 
 -- Robust Event-Driven Roblox Menu Tracking
 local isRobloxMenuOpen = false
@@ -164,7 +163,7 @@ WatermarkLabel.BackgroundTransparency = 1
 WatermarkLabel.TextSize = 20
 WatermarkLabel.Font = Enum.Font.GothamBold
 WatermarkLabel.RichText = true
-WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font>'
+WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
 WatermarkLabel.TextXAlignment = Enum.TextXAlignment.Left
 WatermarkLabel.LayoutOrder = 1
 WatermarkLabel.Parent = WatermarkContainer
@@ -191,10 +190,10 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 260, 0, 35)
-MainControlPanel.Position = UDim2.new(0.5, -130, 0.5, -17.5)
+MainControlPanel.Size = UDim2.new(0, 260, 0, 390)
+MainControlPanel.Position = UDim2.new(0.5, -130, 0.5, -195)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-MainControlPanel.BackgroundTransparency = 1
+MainControlPanel.BackgroundTransparency = 0.1
 MainControlPanel.BorderSizePixel = 0
 MainControlPanel.ClipsDescendants = true
 MainControlPanel.Visible = true
@@ -203,14 +202,14 @@ MainControlPanel.Parent = ScreenGui
 local PanelStroke = Instance.new("UIStroke")
 PanelStroke.Color = Color3.fromRGB(50, 50, 50)
 PanelStroke.Thickness = 2
-PanelStroke.Transparency = 1
+PanelStroke.Transparency = 0
 PanelStroke.Parent = MainControlPanel
 
 -- Main Panel Title Bar
 local MainTitleBar = Instance.new("Frame")
 MainTitleBar.Size = UDim2.new(1, 0, 0, 35)
 MainTitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-MainTitleBar.BackgroundTransparency = 1
+MainTitleBar.BackgroundTransparency = 0
 MainTitleBar.BorderSizePixel = 0
 MainTitleBar.Parent = MainControlPanel
 
@@ -219,7 +218,7 @@ MainTitleLabel.Size = UDim2.new(1, -15, 1, 0)
 MainTitleLabel.Position = UDim2.new(0, 12, 0, 0)
 MainTitleLabel.BackgroundTransparency = 1
 MainTitleLabel.RichText = true
-MainTitleLabel.Text = ""
+MainTitleLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#888888">v' .. ScriptSense.Version .. '</font>'
 MainTitleLabel.Font = Enum.Font.GothamBold
 MainTitleLabel.TextSize = 12
 MainTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -260,8 +259,6 @@ MainListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 MainListLayout.Padding = UDim.new(0, 4)
 MainListLayout.Parent = MainContainer
 
-local isPanelVisible = true
-
 local controlRowUpdateCallbacks = {}
 local controlRowFrames = {}
 
@@ -271,7 +268,7 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = false
+    rowFrame.Visible = true
     rowFrame.Parent = parent
 
     local stroke = Instance.new("UIStroke")
@@ -308,63 +305,6 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
 
     table.insert(controlRowFrames, rowFrame)
     return rowFrame, button
-end
-
-local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
-    local rowFrame = Instance.new("Frame")
-    rowFrame.Size = UDim2.new(1, 0, 0, 38)
-    rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    rowFrame.BackgroundTransparency = 0.2
-    rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = false
-    rowFrame.Parent = parent
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(45, 45, 45)
-    stroke.Thickness = 1
-    stroke.Parent = rowFrame
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 1, 0)
-    label.Position = UDim2.new(0, 12, 0, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(230, 230, 230)
-    label.TextSize = 13
-    label.Font = Enum.Font.GothamMedium
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = "  " .. labelText
-    label.Parent = rowFrame
-
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0, 70, 0, 24)
-    textBox.Position = UDim2.new(1, -82, 0.5, -12)
-    textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    textBox.BackgroundTransparency = 0
-    textBox.BorderSizePixel = 0
-    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textBox.TextSize = 12
-    textBox.Font = Enum.Font.GothamMedium
-    textBox.Text = tostring(initialValue)
-    textBox.ClearTextOnFocus = false
-    textBox.Parent = rowFrame
-
-    local tbStroke = Instance.new("UIStroke")
-    tbStroke.Color = Color3.fromRGB(50, 50, 50)
-    tbStroke.Thickness = 1
-    tbStroke.Parent = textBox
-
-    textBox.FocusLost:Connect(function(enterPressed)
-        local num = tonumber(textBox.Text)
-        if num then
-            onTextChanged(num)
-            textBox.Text = tostring(num)
-        else
-            onTextChanged(textBox.Text)
-        end
-    end)
-
-    table.insert(controlRowFrames, rowFrame)
-    return rowFrame
 end
 
 local function GetKeyName(keyCode)
@@ -574,6 +514,70 @@ local function Message(TitleText, TextContent, Time)
         })
     end)
 end
+
+-- Create Menu Rows for Hub Features
+CreateControlRow(MainContainer, "Aimbot: [OFF]", function()
+    ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled
+end, function(btn)
+    local state = ScriptSense.Config.AimbotEnabled and "ON" or "OFF"
+    local color = ScriptSense.Config.AimbotEnabled and "#00FF00" or "#FF0000"
+    btn.Text = "Aimbot: [" .. '<font color="' .. color .. '">' .. state .. '</font>' .. "]"
+end)
+
+CreateControlRow(MainContainer, "Wallhack (ESP): [OFF]", function()
+    ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
+end, function(btn)
+    local state = ScriptSense.Config.WallhackEnabled and "ON" or "OFF"
+    local color = ScriptSense.Config.WallhackEnabled and "#00FF00" or "#FF0000"
+    btn.Text = "Wallhack (ESP): [" .. '<font color="' .. color .. '">' .. state .. '</font>' .. "]"
+end)
+
+CreateControlRow(MainContainer, "Fly: [OFF]", function()
+    ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
+end, function(btn)
+    local state = ScriptSense.Config.FlyEnabled and "ON" or "OFF"
+    local color = ScriptSense.Config.FlyEnabled and "#00FF00" or "#FF0000"
+    btn.Text = "Fly: [" .. '<font color="' .. color .. '">' .. state .. '</font>' .. "]"
+end)
+
+CreateControlRow(MainContainer, "Speedhack: [OFF]", function()
+    ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
+end, function(btn)
+    local state = ScriptSense.Config.SpeedhackEnabled and "ON" or "OFF"
+    local color = ScriptSense.Config.SpeedhackEnabled and "#00FF00" or "#FF0000"
+    btn.Text = "Speedhack: [" .. '<font color="' .. color .. '">' .. state .. '</font>' .. "]"
+end)
+
+CreateControlRow(MainContainer, "Open Multi-Fling Menu", function()
+    FlingGuiWindow.Visible = not FlingGuiWindow.Visible
+end)
+
+CreateControlRow(MainContainer, "Open Keybind Manager", function()
+    ToggleKeybindsMenu()
+end)
+
+-- Refresh all control rows to reflect initial state
+for _, updateFn in ipairs(controlRowUpdateCallbacks) do
+    pcall(updateFn)
+end
+
+MainContainer.CanvasSize = UDim2.new(0, 0, 0, #controlRowFrames * 42)
+
+-- Toggle Menu Visibility via Arrow or Keybind
+local menuVisible = true
+MenuToggleArrow.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    MainControlPanel.Visible = menuVisible
+    MenuToggleArrow.Text = menuVisible and "▲" or "▼"
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == ScriptSense.Config.Keybinds.MenuToggle then
+        menuVisible = not menuVisible
+        MainControlPanel.Visible = menuVisible
+        MenuToggleArrow.Text = menuVisible and "▲" or "▼"
+    end
+end)
 
 local function CountSelectedTargets()
     local count = 0
@@ -893,408 +897,4 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 RefreshPlayerList()
-UpdateStatus()
-
--- Create Keybind manager rows inside KeybindsMenuWindow
-for featureName, keyEnum in pairs(ScriptSense.Config.Keybinds) do
-    CreateControlRow(KbContainer, featureName .. " bind: " .. GetKeyName(keyEnum), function(btn)
-        btn.Text = "  [press any key for " .. string.lower(featureName) .. "]..."
-        local connection
-        connection = UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                ScriptSense.Config.Keybinds[featureName] = input.KeyCode
-                btn.Text = "  " .. string.lower(featureName) .. " bind: " .. GetKeyName(input.KeyCode)
-                if connection then connection:Disconnect() end
-            end
-        end)
-    end)
-end
-
--- Populate Main Panel Rows
-CreateControlRow(MainContainer, "wallhack: off | bind: g", function()
-    ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
-end, function(btn)
-    local status = ScriptSense.Config.WallhackEnabled and "on" or "off"
-    btn.Text = "  wallhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Wallhack))
-end)
-
-CreateControlRow(MainContainer, "aimbot: off | bind: r", function()
-    if not IsRobloxMenuOpen() then ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled end
-end, function(btn)
-    local status = ScriptSense.Config.AimbotEnabled and "on" or "off"
-    btn.Text = "  aimbot: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Aimbot))
-end)
-
-CreateTextBoxRow(MainContainer, "aimbot | fov radius", ScriptSense.Config.AimbotFovRadius, function(val)
-    ScriptSense.Config.AimbotFovRadius = tonumber(val) or ScriptSense.Config.AimbotFovRadius
-    if fovCircle then fovCircle.Radius = ScriptSense.Config.AimbotFovRadius end
-end)
-
-CreateControlRow(MainContainer, "godmode: off | bind: c", function()
-    ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
-end, function(btn)
-    local status = ScriptSense.Config.GodmodeEnabled and "on" or "off"
-    btn.Text = "  godmode: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Godmode))
-end)
-
-CreateControlRow(MainContainer, "fly: off | bind: f", function()
-    ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
-end, function(btn)
-    local status = ScriptSense.Config.FlyEnabled and "on" or "off"
-    btn.Text = "  fly: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Fly))
-end)
-
-CreateControlRow(MainContainer, "skeleton esp: off | bind: x", function()
-    ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
-end, function(btn)
-    local status = ScriptSense.Config.SkeletonEspEnabled and "on" or "off"
-    btn.Text = "  skeleton esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Skeleton))
-end)
-
-CreateControlRow(MainContainer, "box esp: off | bind: b", function()
-    ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
-end, function(btn)
-    local status = ScriptSense.Config.BoxEspEnabled and "on" or "off"
-    btn.Text = "  box esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.BoxEsp))
-end)
-
-CreateControlRow(MainContainer, "name esp: off | bind: n", function()
-    ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
-end, function(btn)
-    local status = ScriptSense.Config.NameEspEnabled and "on" or "off"
-    btn.Text = "  name esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.NameEsp))
-end)
-
-CreateControlRow(MainContainer, "speedhack: off | bind: v", function()
-    ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
-    if not ScriptSense.Config.SpeedhackEnabled then
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = ScriptSense.Config.DefaultWalkSpeed end
-    end
-end, function(btn)
-    local status = ScriptSense.Config.SpeedhackEnabled and "on" or "off"
-    btn.Text = "  speedhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
-end)
-
-CreateTextBoxRow(MainContainer, "speedhack | speed", ScriptSense.Config.SpeedhackSpeed, function(val)
-    ScriptSense.Config.SpeedhackSpeed = tonumber(val) or ScriptSense.Config.SpeedhackSpeed
-end)
-
-CreateControlRow(MainContainer, "anti-aim: off | bind: u", function()
-    ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
-end, function(btn)
-    local status = ScriptSense.Config.AntiAimEnabled and "on" or "off"
-    btn.Text = "  anti-aim: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.AntiAim))
-end)
-
-CreateTextBoxRow(MainContainer, "anti aim | speed", ScriptSense.Config.SpinSpeed, function(val)
-    ScriptSense.Config.SpinSpeed = tonumber(val) or ScriptSense.Config.SpinSpeed
-end)
-
-CreateTextBoxRow(MainContainer, "anti aim | angle", ScriptSense.Config.AntiAimHeadAngle, function(val)
-    ScriptSense.Config.AntiAimHeadAngle = tonumber(val) or ScriptSense.Config.AntiAimHeadAngle
-end)
-
-CreateTextBoxRow(MainContainer, "tp | target name", ScriptSense.Config.TpTarget, function(val)
-    ScriptSense.Config.TpTarget = tostring(val)
-end)
-
-CreateControlRow(MainContainer, "teleport to player", function()
-    local targetName = string.lower(ScriptSense.Config.TpTarget or "")
-    if targetName == "" then return end
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and (string.sub(string.lower(player.Name), 1, #targetName) == targetName or string.sub(string.lower(player.DisplayName), 1, #targetName) == targetName) then
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
-            end
-            break
-        end
-    end
-end)
-
-CreateControlRow(MainContainer, "open multi-fling gui", function()
-    RefreshPlayerList()
-    FlingGuiWindow.Visible = not FlingGuiWindow.Visible
-end)
-
-CreateControlRow(MainContainer, "keybinds manager", function()
-    ToggleKeybindsMenu()
-end)
-
--- INTRO ANIMATION & 2-SECOND TOTAL APPEARANCE SEQUENCE
-task.spawn(function()
-    local rawString = "SCRIPT SENSE v" .. ScriptSense.Version
-    local interval = 1 / #rawString
-
-    for i = 1, #rawString do
-        local currentSub = string.sub(rawString, 1, i)
-        local formatted = ""
-        if i <= 6 then
-            formatted = '<font color="#FFFFFF">' .. currentSub .. '</font>'
-        elseif i <= 12 then
-            local subSense = string.sub(currentSub, 8)
-            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">' .. subSense .. '</font>'
-        else
-            local subVer = string.sub(currentSub, 14)
-            formatted = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">' .. subVer .. '</font>'
-        end
-        MainTitleLabel.Text = formatted
-        task.wait(interval)
-    end
-
-    local fadeTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 0.2
-    })
-    local strokeFade = TweenService:Create(PanelStroke, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Transparency = 0
-    })
-    fadeTween:Play()
-    strokeFade:Play()
-
-    local slideTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0, 20, 0, 65)
-    })
-    slideTween:Play()
-    slideTween.Completed:Wait()
-
-    task.wait(0.2)
-
-    local expandTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 260, 0, 480)
-    })
-    expandTween:Play()
-    expandTween.Completed:Wait()
-
-    for _, row in ipairs(controlRowFrames) do
-        row.Visible = true
-        task.wait(0.04)
-    end
-end)
-
-local function ToggleMenuVisibility()
-    isPanelVisible = not isPanelVisible
-    MainControlPanel.Visible = isPanelVisible
-    MenuToggleArrow.Text = isPanelVisible and "▲" or "▼"
-end
-
-MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
-
--- Global Keybinds Listener
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if UserInputService:GetFocusedTextBox() then return end
-    if input.UserInputType == Enum.UserInputType.Keyboard then
-        local keyCode = input.KeyCode
-        
-        if keyCode == ScriptSense.Config.Keybinds.MenuToggle then
-            ToggleMenuVisibility()
-        elseif keyCode == ScriptSense.Config.Keybinds.Wallhack then
-            ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
-        elseif keyCode == ScriptSense.Config.Keybinds.Aimbot then
-            if not IsRobloxMenuOpen() then
-                ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled
-            end
-        elseif keyCode == ScriptSense.Config.Keybinds.Godmode then
-            ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
-        elseif keyCode == ScriptSense.Config.Keybinds.Fly then
-            ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
-        elseif keyCode == ScriptSense.Config.Keybinds.Skeleton then
-            ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
-        elseif keyCode == ScriptSense.Config.Keybinds.BoxEsp then
-            ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
-        elseif keyCode == ScriptSense.Config.Keybinds.NameEsp then
-            ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
-        elseif keyCode == ScriptSense.Config.Keybinds.Speedhack then
-            ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
-            if not ScriptSense.Config.SpeedhackEnabled then
-                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then humanoid.WalkSpeed = ScriptSense.Config.DefaultWalkSpeed end
-            end
-        elseif keyCode == ScriptSense.Config.Keybinds.AntiAim then
-            ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
-        end
-        
-        for _, updateCb in ipairs(controlRowUpdateCallbacks) do
-            pcall(updateCb)
-        end
-    end
-end)
-
--- Main Loop
-local activeDrawings = {}
-
-local function ClearDrawings()
-    for _, drawing in pairs(activeDrawings) do
-        SafeDestroy(drawing)
-    end
-    activeDrawings = {}
-end
-
-RunService.RenderStepped:Connect(function(dt)
-    if fovCircle then
-        if ScriptSense.Config.AimbotEnabled then
-            fovCircle.Visible = true
-            fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-            fovCircle.Radius = ScriptSense.Config.AimbotFovRadius
-            fovCircle.NumSides = 128
-        else
-            fovCircle.Visible = false
-        end
-    end
-
-    if ScriptSense.Config.SpeedhackEnabled then
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.WalkSpeed = ScriptSense.Config.SpeedhackSpeed
-        end
-    end
-
-    if ScriptSense.Config.AntiAimEnabled then
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if root and hum then
-            hum.AutoRotate = false
-            ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
-            local camLook = Camera.CFrame.LookVector
-            local camFlat = Vector3.new(camLook.X, 0, camLook.Z).Unit
-            if camFlat.Magnitude == 0 then camFlat = Vector3.new(0, 0, -1) end
-            local yawCFrame = CFrame.new(root.Position, root.Position + camFlat)
-            root.CFrame = yawCFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.CurrentSpinAngle), 0)
-        end
-    else
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.AutoRotate = true
-        end
-    end
-
-    if ScriptSense.Config.AimbotEnabled and not IsRobloxMenuOpen() then
-        local closestPlayer = nil
-        local shortestDist = ScriptSense.Config.AimbotFovRadius
-        local mousePos = UserInputService:GetMouseLocation()
-
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    local rootPart = player.Character.HumanoidRootPart
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-                    if onScreen then
-                        local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        if dist < shortestDist then
-                            shortestDist = dist
-                            closestPlayer = player
-                        end
-                    end
-                end
-            end
-        end
-
-        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
-            local targetHead = closestPlayer.Character.Head
-            local targetPos = targetHead.Position
-            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), 1 / ScriptSense.Config.AimbotSmoothness)
-        end
-    end
-
-    ClearDrawings()
-    if ScriptSense.Config.BoxEspEnabled or ScriptSense.Config.SkeletonEspEnabled or ScriptSense.Config.NameEspEnabled then
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local char = player.Character
-                local rootPart = char:FindFirstChild("HumanoidRootPart")
-                local head = char:FindFirstChild("Head")
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-
-                if rootPart and head and humanoid and humanoid.Health > 0 then
-                    local rootPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-                    -- Fixed depth check (Z > 0) to prevent backward projection explosions and out-of-screen stretching
-                    if onScreen and rootPos.Z > 0 then
-                        local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                        local legPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
-                        local height = math.clamp(math.abs(headPos.Y - legPos.Y), 10, 2000)
-                        local width = math.clamp(height / 2, 5, 1000)
-
-                        if ScriptSense.Config.BoxEspEnabled then
-                            local box = Drawing.new("Square")
-                            box.Visible = true
-                            box.Color = Color3.fromRGB(255, 255, 255)
-                            box.Thickness = 1
-                            box.Filled = false
-                            box.Size = Vector2.new(width, height)
-                            box.Position = Vector2.new(rootPos.X - width / 2, headPos.Y)
-                            table.insert(activeDrawings, box)
-                        end
-
-                        if ScriptSense.Config.NameEspEnabled then
-                            local nameText = Drawing.new("Text")
-                            nameText.Visible = true
-                            nameText.Color = Color3.fromRGB(255, 255, 255)
-                            nameText.Size = 14
-                            nameText.Center = true
-                            nameText.Outline = true
-                            nameText.Text = player.Name
-                            nameText.Position = Vector2.new(rootPos.X, headPos.Y - 18)
-                            table.insert(activeDrawings, nameText)
-                        end
-
-                        if ScriptSense.Config.SkeletonEspEnabled then
-                            -- Full multi-bone skeleton tracer supporting R6 and R15 rigs
-                            local joints = {}
-                            if humanoid.RigType == Enum.HumanoidRigType.R6 then
-                                local torso = char:FindFirstChild("Torso")
-                                local leftArm = char:FindFirstChild("Left Arm")
-                                local rightArm = char:FindFirstChild("Right Arm")
-                                local leftLeg = char:FindFirstChild("Left Leg")
-                                local rightLeg = char:FindFirstChild("Right Leg")
-                                if head and torso then
-                                    table.insert(joints, {head, torso})
-                                    if leftArm then table.insert(joints, {torso, leftArm}) end
-                                    if rightArm then table.insert(joints, {torso, rightArm}) end
-                                    if leftLeg then table.insert(joints, {torso, leftLeg}) end
-                                    if rightLeg then table.insert(joints, {torso, rightLeg}) end
-                                end
-                            else -- R15
-                                local upperTorso = char:FindFirstChild("UpperTorso")
-                                local lowerTorso = char:FindFirstChild("LowerTorso")
-                                local leftUpperArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("LeftHand")
-                                local rightUpperArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("RightHand")
-                                local leftUpperLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("LeftFoot")
-                                local rightUpperLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("RightFoot")
-                                if head and upperTorso then
-                                    table.insert(joints, {head, upperTorso})
-                                    if lowerTorso then table.insert(joints, {upperTorso, lowerTorso}) end
-                                    if leftUpperArm then table.insert(joints, {upperTorso, leftUpperArm}) end
-                                    if rightUpperArm then table.insert(joints, {upperTorso, rightUpperArm}) end
-                                    if leftUpperLeg then table.insert(joints, {lowerTorso or upperTorso, leftUpperLeg}) end
-                                    if rightUpperLeg then table.insert(joints, {lowerTorso or upperTorso, rightUpperLeg}) end
-                                end
-                            end
-
-                            for _, joint in ipairs(joints) do
-                                local p1, p2 = joint[1], joint[2]
-                                if p1 and p2 then
-                                    local v1, s1 = Camera:WorldToViewportPoint(p1.Position)
-                                    local v2, s2 = Camera:WorldToViewportPoint(p2.Position)
-                                    if s1 and s2 and v1.Z > 0 and v2.Z > 0 then
-                                        local line = Drawing.new("Line")
-                                        line.Visible = true
-                                        line.Color = Color3.fromRGB(255, 255, 255)
-                                        line.Thickness = 1
-                                        line.From = Vector2.new(v1.X, v1.Y)
-                                        line.To = Vector2.new(v2.X, v2.Y)
-                                        table.insert(activeDrawings, line)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
-return ScriptSense
+Message("ScriptSense", "Loaded successfully v" .. ScriptSense.Version, 3)
