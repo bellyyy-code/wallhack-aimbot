@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.6.6"
+ScriptSense.Version = "7.6.7"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -49,6 +49,7 @@ ScriptSense.Config = {
     NameEspEnabled = false,
     AntiAimEnabled = false,
     SpeedhackEnabled = false,
+    FlingEnabled = false,
     FovCircleEnabled = true,
 
     FlySpeed = 50,
@@ -60,6 +61,7 @@ ScriptSense.Config = {
     AimbotSmoothness = 4,
     AimbotFovRadius = 150,
     CurrentSpinAngle = 0,
+    TpTarget = "",
 
     Keybinds = {
         Wallhack = Enum.KeyCode.G,
@@ -116,6 +118,17 @@ ESPContainer.Name = "ScriptSenseESPContainer"
 ESPContainer.Parent = ScreenGui
 
 local IsMobileDevice = UserInputService.TouchEnabled
+
+-- FOV Circle Drawing Initialization
+local fovCircle = nil
+pcall(function()
+    fovCircle = Drawing.new("Circle")
+    fovCircle.Visible = false
+    fovCircle.Thickness = 1
+    fovCircle.Color = Color3.fromRGB(255, 255, 255)
+    fovCircle.Filled = false
+    fovCircle.Transparency = 0.8
+end)
 
 -- Watermark Container
 local WatermarkContainer = Instance.new("Frame")
@@ -414,7 +427,7 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
             onTextChanged(num)
             textBox.Text = tostring(num)
         else
-            textBox.Text = tostring(initialValue)
+            onTextChanged(textBox.Text) -- for string inputs like TP target
         end
     end)
 
@@ -443,7 +456,7 @@ for featureName, keyEnum in pairs(ScriptSense.Config.Keybinds) do
     end)
 end
 
--- Populate Panel Rows with live state updates & TextBoxes for numerical values
+-- Populate Panel Rows with live state updates & TextBoxes
 CreateControlRow(MainContainer, "wallhack: off | bind: g", function()
     ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
 end, function(btn)
@@ -459,7 +472,8 @@ end, function(btn)
 end)
 
 CreateTextBoxRow(MainContainer, "aimbot | fov radius", ScriptSense.Config.AimbotFovRadius, function(val)
-    ScriptSense.Config.AimbotFovRadius = val
+    ScriptSense.Config.AimbotFovRadius = tonumber(val) or ScriptSense.Config.AimbotFovRadius
+    if fovCircle then fovCircle.Radius = ScriptSense.Config.AimbotFovRadius end
 end)
 
 CreateControlRow(MainContainer, "godmode: off | bind: c", function()
@@ -509,7 +523,7 @@ end, function(btn)
 end)
 
 CreateTextBoxRow(MainContainer, "speedhack | speed", ScriptSense.Config.SpeedhackSpeed, function(val)
-    ScriptSense.Config.SpeedhackSpeed = val
+    ScriptSense.Config.SpeedhackSpeed = tonumber(val) or ScriptSense.Config.SpeedhackSpeed
 end)
 
 CreateControlRow(MainContainer, "anti-aim: off | bind: u", function()
@@ -520,11 +534,49 @@ end, function(btn)
 end)
 
 CreateTextBoxRow(MainContainer, "anti aim | speed", ScriptSense.Config.SpinSpeed, function(val)
-    ScriptSense.Config.SpinSpeed = val
+    ScriptSense.Config.SpinSpeed = tonumber(val) or ScriptSense.Config.SpinSpeed
 end)
 
 CreateTextBoxRow(MainContainer, "anti aim | angle", ScriptSense.Config.AntiAimHeadAngle, function(val)
-    ScriptSense.Config.AntiAimHeadAngle = val
+    ScriptSense.Config.AntiAimHeadAngle = tonumber(val) or ScriptSense.Config.AntiAimHeadAngle
+end)
+
+-- TP GUI & Fling Integration Rows
+CreateTextBoxRow(MainContainer, "tp | target name", ScriptSense.Config.TpTarget, function(val)
+    ScriptSense.Config.TpTarget = tostring(val)
+end)
+
+CreateControlRow(MainContainer, "teleport to player", function()
+    local targetName = string.lower(ScriptSense.Config.TpTarget or "")
+    if targetName == "" then return end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and (string.sub(string.lower(player.Name), 1, #targetName) == targetName or string.sub(string.lower(player.DisplayName), 1, #targetName) == targetName) then
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+            end
+            break
+        end
+    end
+end)
+
+CreateControlRow(MainContainer, "fling: off", function()
+    ScriptSense.Config.FlingEnabled = not ScriptSense.Config.FlingEnabled
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local rootPart = character.HumanoidRootPart
+    if ScriptSense.Config.FlingEnabled then
+        local bav = Instance.new("BodyAngularVelocity")
+        bav.Name = "ScriptSenseFling"
+        bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bav.AngularVelocity = Vector3.new(0, 99999, 0)
+        bav.Parent = rootPart
+    else
+        local bav = rootPart:FindFirstChild("ScriptSenseFling")
+        if bav then bav:Destroy() end
+    end
+end, function(btn)
+    local status = ScriptSense.Config.FlingEnabled and "on" or "off"
+    btn.Text = "  fling: " .. status
 end)
 
 CreateControlRow(MainContainer, "keybinds manager", function()
@@ -571,7 +623,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Fully Implemented Cheat Loops & Mechanics (ESP, Aimbot, Fly, AntiAim, Speedhack, Godmode)
+-- Cheat Loops & Mechanics (ESP, Aimbot, FOV Circle, Speedhack, AntiAim, Fling)
 local activeDrawings = {}
 
 local function ClearDrawings()
@@ -582,6 +634,17 @@ local function ClearDrawings()
 end
 
 RunService.RenderStepped:Connect(function(dt)
+    -- FOV Circle Update
+    if fovCircle then
+        if ScriptSense.Config.AimbotEnabled or ScriptSense.Config.FovCircleEnabled then
+            fovCircle.Visible = true
+            fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+            fovCircle.Radius = ScriptSense.Config.AimbotFovRadius
+        else
+            fovCircle.Visible = false
+        end
+    end
+
     -- Speedhack implementation
     if ScriptSense.Config.SpeedhackEnabled then
         local char = LocalPlayer.Character
@@ -598,6 +661,19 @@ RunService.RenderStepped:Connect(function(dt)
         if root then
             ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
             root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.SpinSpeed), 0)
+        end
+    end
+
+    -- Fling loop maintenance
+    if ScriptSense.Config.FlingEnabled then
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root and not root:FindFirstChild("ScriptSenseFling") then
+            local bav = Instance.new("BodyAngularVelocity")
+            bav.Name = "ScriptSenseFling"
+            bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bav.AngularVelocity = Vector3.new(0, 99999, 0)
+            bav.Parent = root
         end
     end
 
