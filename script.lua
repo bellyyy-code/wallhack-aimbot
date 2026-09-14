@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.5.0"
+ScriptSense.Version = "7.5.1"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -122,9 +122,11 @@ local function MakeDraggable(frame, handle)
             dragStart = input.Position
             startPos = frame.Position
             
-            input.Changed:Connect(function()
+            local connection
+            connection = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
+                    if connection then connection:Disconnect() end
                 end
             end)
         end
@@ -202,10 +204,11 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 240, 0, 500)
+MainControlPanel.Size = UDim2.new(0, 240, 0, 420)
 MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
+MainControlPanel.ClipsDescendants = true
 MainControlPanel.Visible = false
 MainControlPanel.Parent = ScreenGui
 
@@ -217,6 +220,41 @@ PanelStroke.Thickness = 2
 PanelStroke.Transparency = 1
 PanelStroke.Parent = MainControlPanel
 
+-- Main Panel Title Bar
+local MainTitleBar = Instance.new("Frame")
+MainTitleBar.Size = UDim2.new(1, 0, 0, 35)
+MainTitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+MainTitleBar.BorderSizePixel = 0
+MainTitleBar.Parent = MainControlPanel
+
+MakeDraggable(MainControlPanel, MainTitleBar)
+
+local MainTitleLabel = Instance.new("TextLabel")
+MainTitleLabel.Size = UDim2.new(1, -15, 1, 0)
+MainTitleLabel.Position = UDim2.new(0, 12, 0, 0)
+MainTitleLabel.BackgroundTransparency = 1
+MainTitleLabel.RichText = true
+MainTitleLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font>'
+MainTitleLabel.Font = Enum.Font.GothamBold
+MainTitleLabel.TextSize = 13
+MainTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+MainTitleLabel.Parent = MainTitleBar
+
+local MainContainer = Instance.new("ScrollingFrame")
+MainContainer.Name = "MainContainer"
+MainContainer.Size = UDim2.new(1, 0, 1, -35)
+MainContainer.Position = UDim2.new(0, 0, 0, 35)
+MainContainer.BackgroundTransparency = 1
+MainContainer.BorderSizePixel = 0
+MainContainer.ScrollBarThickness = 4
+MainContainer.Active = true
+MainContainer.Parent = MainControlPanel
+
+local MainListLayout = Instance.new("UIListLayout")
+MainListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MainListLayout.Padding = UDim.new(0, 4)
+MainListLayout.Parent = MainContainer
+
 local isPanelVisible = false
 local function ToggleMenuVisibility()
     isPanelVisible = not isPanelVisible
@@ -226,13 +264,14 @@ end
 
 MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 
--- Keybinds Menu Window (With Mouse Wheel Scroll support & Draggable)
+-- Keybinds Menu Window
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
 KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 390)
 KeybindsMenuWindow.Position = UDim2.new(0.5, -150, 0.5, -195)
 KeybindsMenuWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 KeybindsMenuWindow.BorderSizePixel = 0
+KeybindsMenuWindow.ClipsDescendants = true
 KeybindsMenuWindow.Visible = false
 KeybindsMenuWindow.Parent = ScreenGui
 
@@ -243,20 +282,44 @@ KbStroke.Color = Color3.fromRGB(70, 70, 70)
 KbStroke.Thickness = 2
 KbStroke.Parent = KeybindsMenuWindow
 
+local KbTitleBar = Instance.new("Frame")
+KbTitleBar.Size = UDim2.new(1, 0, 0, 35)
+KbTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+KbTitleBar.BorderSizePixel = 0
+KbTitleBar.Parent = KeybindsMenuWindow
+
+MakeDraggable(KeybindsMenuWindow, KbTitleBar)
+
 local KbTitle = Instance.new("TextLabel")
-KbTitle.Size = UDim2.new(1, 0, 0, 40)
+KbTitle.Size = UDim2.new(1, -35, 1, 0)
+KbTitle.Position = UDim2.new(0, 12, 0, 0)
 KbTitle.BackgroundTransparency = 1
+KbTitle.RichText = true
+KbTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> — KEYBIND MANAGER'
 KbTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-KbTitle.TextSize = 14
+KbTitle.TextSize = 13
 KbTitle.Font = Enum.Font.GothamBold
-KbTitle.Text = "  KEYBIND MANAGER"
 KbTitle.TextXAlignment = Enum.TextXAlignment.Left
-KbTitle.Parent = KeybindsMenuWindow
+KbTitle.Parent = KbTitleBar
+
+local KbCloseBtn = Instance.new("TextButton")
+KbCloseBtn.Size = UDim2.new(0, 35, 0, 35)
+KbCloseBtn.Position = UDim2.new(1, -35, 0, 0)
+KbCloseBtn.BackgroundTransparency = 1
+KbCloseBtn.Text = "✕"
+KbCloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+KbCloseBtn.Font = Enum.Font.GothamBold
+KbCloseBtn.TextSize = 14
+KbCloseBtn.Parent = KbTitleBar
+
+KbCloseBtn.MouseButton1Click:Connect(function()
+    KeybindsMenuWindow.Visible = false
+end)
 
 local KbContainer = Instance.new("ScrollingFrame")
 KbContainer.Name = "KbContainer"
-KbContainer.Size = UDim2.new(1, 0, 1, -40)
-KbContainer.Position = UDim2.new(0, 0, 0, 40)
+KbContainer.Size = UDim2.new(1, 0, 1, -35)
+KbContainer.Position = UDim2.new(0, 0, 0, 35)
 KbContainer.BackgroundTransparency = 1
 KbContainer.BorderSizePixel = 0
 KbContainer.ScrollBarThickness = 6
@@ -277,12 +340,11 @@ end
 local controlRowUpdateCallbacks = {}
 local controlRowFrames = {}
 
-local function CreateControlRow(parent, posY, initialText, callback, updateCallback)
+local function CreateControlRow(parent, initialText, callback, updateCallback)
     local rowFrame = Instance.new("Frame")
-    rowFrame.Size = UDim2.new(1, -20, 0, 35)
-    rowFrame.Position = UDim2.new(0, 10, 0, posY)
+    rowFrame.Size = UDim2.new(1, 0, 0, 38)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    rowFrame.BackgroundTransparency = 1
+    rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
     rowFrame.Visible = false
     rowFrame.Parent = parent
@@ -333,65 +395,56 @@ local function GetKeyName(keyCode)
 end
 
 -- Populate Panel Rows with live state updates
-local verticalOffset = 15
-
-CreateControlRow(MainControlPanel, verticalOffset, "wallhack: off | bind: g", function()
+CreateControlRow(MainContainer, "wallhack: off | bind: g", function()
     ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
 end, function(btn)
     local status = ScriptSense.Config.WallhackEnabled and "on" or "off"
     btn.Text = "  wallhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Wallhack))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "aimbot: off | bind: r", function()
+CreateControlRow(MainContainer, "aimbot: off | bind: r", function()
     if not IsRobloxMenuOpen() then ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled end
 end, function(btn)
     local status = ScriptSense.Config.AimbotEnabled and "on" or "off"
     btn.Text = "  aimbot: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Aimbot))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "godmode: off | bind: c", function()
+CreateControlRow(MainContainer, "godmode: off | bind: c", function()
     ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
 end, function(btn)
     local status = ScriptSense.Config.GodmodeEnabled and "on" or "off"
     btn.Text = "  godmode: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Godmode))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "fly: off | bind: f", function()
+CreateControlRow(MainContainer, "fly: off | bind: f", function()
     ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
 end, function(btn)
     local status = ScriptSense.Config.FlyEnabled and "on" or "off"
     btn.Text = "  fly: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Fly))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "skeleton esp: off | bind: x", function()
+CreateControlRow(MainContainer, "skeleton esp: off | bind: x", function()
     ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
 end, function(btn)
     local status = ScriptSense.Config.SkeletonEspEnabled and "on" or "off"
     btn.Text = "  skeleton esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Skeleton))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "box esp: off | bind: b", function()
+CreateControlRow(MainContainer, "box esp: off | bind: b", function()
     ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
 end, function(btn)
     local status = ScriptSense.Config.BoxEspEnabled and "on" or "off"
     btn.Text = "  box esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.BoxEsp))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "name esp: off | bind: n", function()
+CreateControlRow(MainContainer, "name esp: off | bind: n", function()
     ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
 end, function(btn)
     local status = ScriptSense.Config.NameEspEnabled and "on" or "off"
     btn.Text = "  name esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.NameEsp))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "speedhack: off | speed: 32 | bind: v", function()
+CreateControlRow(MainContainer, "speedhack: off | speed: 32 | bind: v", function()
     ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
     if not ScriptSense.Config.SpeedhackEnabled then
         local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -401,25 +454,22 @@ end, function(btn)
     local status = ScriptSense.Config.SpeedhackEnabled and "on" or "off"
     btn.Text = "  speedhack: " .. status .. " | speed: " .. ScriptSense.Config.SpeedhackSpeed .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "anti-aim: off | bind: u", function()
+CreateControlRow(MainContainer, "anti-aim: off | bind: u", function()
     ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
 end, function(btn)
     local status = ScriptSense.Config.AntiAimEnabled and "on" or "off"
     btn.Text = "  anti-aim: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.AntiAim))
 end)
-verticalOffset = verticalOffset + 42
 
 -- Teleport Window
-local TeleportWindow = Instance.new("ScrollingFrame")
+local TeleportWindow = Instance.new("Frame")
 TeleportWindow.Name = "TeleportWindow"
 TeleportWindow.Size = UDim2.new(0, 300, 0, 360)
 TeleportWindow.Position = UDim2.new(0.5, -150, 0.5, -180)
 TeleportWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 TeleportWindow.BorderSizePixel = 0
-TeleportWindow.ScrollBarThickness = 6
-TeleportWindow.Active = true
+TeleportWindow.ClipsDescendants = true
 TeleportWindow.Visible = false
 TeleportWindow.Parent = ScreenGui
 
@@ -430,14 +480,56 @@ TpStroke.Color = Color3.fromRGB(70, 70, 70)
 TpStroke.Thickness = 2
 TpStroke.Parent = TeleportWindow
 
+local TpTitleBar = Instance.new("Frame")
+TpTitleBar.Size = UDim2.new(1, 0, 0, 35)
+TpTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TpTitleBar.BorderSizePixel = 0
+TpTitleBar.Parent = TeleportWindow
+
+MakeDraggable(TeleportWindow, TpTitleBar)
+
+local TpTitle = Instance.new("TextLabel")
+TpTitle.Size = UDim2.new(1, -35, 1, 0)
+TpTitle.Position = UDim2.new(0, 12, 0, 0)
+TpTitle.BackgroundTransparency = 1
+TpTitle.RichText = true
+TpTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> — TELEPORT MENU'
+TpTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+TpTitle.Font = Enum.Font.GothamBold
+TpTitle.TextSize = 13
+TpTitle.TextXAlignment = Enum.TextXAlignment.Left
+TpTitle.Parent = TpTitleBar
+
+local TpCloseBtn = Instance.new("TextButton")
+TpCloseBtn.Size = UDim2.new(0, 35, 0, 35)
+TpCloseBtn.Position = UDim2.new(1, -35, 0, 0)
+TpCloseBtn.BackgroundTransparency = 1
+TpCloseBtn.Text = "✕"
+TpCloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+TpCloseBtn.Font = Enum.Font.GothamBold
+TpCloseBtn.TextSize = 14
+TpCloseBtn.Parent = TpTitleBar
+
+TpCloseBtn.MouseButton1Click:Connect(function()
+    TeleportWindow.Visible = false
+end)
+
+local TpScrollFrame = Instance.new("ScrollingFrame")
+TpScrollFrame.Size = UDim2.new(1, 0, 1, -35)
+TpScrollFrame.Position = UDim2.new(0, 0, 0, 35)
+TpScrollFrame.BackgroundTransparency = 1
+TpScrollFrame.BorderSizePixel = 0
+TpScrollFrame.ScrollBarThickness = 6
+TpScrollFrame.Active = true
+TpScrollFrame.Parent = TeleportWindow
+
 local TpLayout = Instance.new("UIListLayout")
 TpLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TpLayout.Parent = TeleportWindow
+TpLayout.Parent = TpScrollFrame
 
-CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
+CreateControlRow(MainContainer, "teleport menu", function()
     TeleportWindow.Visible = not TeleportWindow.Visible
 end)
-verticalOffset = verticalOffset + 42
 
 -- Multi Fling Window
 local FlingWindow = Instance.new("Frame")
@@ -446,6 +538,7 @@ FlingWindow.Size = UDim2.new(0, 300, 0, 390)
 FlingWindow.Position = UDim2.new(0.5, -150, 0.5, -195)
 FlingWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 FlingWindow.BorderSizePixel = 0
+FlingWindow.ClipsDescendants = true
 FlingWindow.Visible = false
 FlingWindow.Parent = ScreenGui
 
@@ -462,15 +555,17 @@ FlingTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 FlingTitleBar.BorderSizePixel = 0
 FlingTitleBar.Parent = FlingWindow
 
+MakeDraggable(FlingWindow, FlingTitleBar)
+
 local FlingTitle = Instance.new("TextLabel")
 FlingTitle.Size = UDim2.new(1, -35, 1, 0)
-FlingTitle.Position = UDim2.new(0, 10, 0, 0)
+FlingTitle.Position = UDim2.new(0, 12, 0, 0)
 FlingTitle.BackgroundTransparency = 1
 FlingTitle.RichText = true
-FlingTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font>'
+FlingTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> — MULTI FLING'
 FlingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 FlingTitle.Font = Enum.Font.GothamBold
-FlingTitle.TextSize = 14
+FlingTitle.TextSize = 13
 FlingTitle.TextXAlignment = Enum.TextXAlignment.Left
 FlingTitle.Parent = FlingTitleBar
 
@@ -570,15 +665,18 @@ DeselectAllButton.Font = Enum.Font.GothamMedium
 DeselectAllButton.TextSize = 12
 DeselectAllButton.Parent = FlingWindow
 
-CreateControlRow(MainControlPanel, verticalOffset, "multi fling menu", function()
+CreateControlRow(MainContainer, "multi fling menu", function()
     FlingWindow.Visible = not FlingWindow.Visible
 end)
-verticalOffset = verticalOffset + 42
 
-CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
+CreateControlRow(MainContainer, "keybinds menu | bind: `", function()
     ToggleKeybindsMenu()
 end)
-verticalOffset = verticalOffset + 42
+
+-- Update MainContainer CanvasSize automatically
+MainListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    MainContainer.CanvasSize = UDim2.new(0, 0, 0, MainListLayout.AbsoluteContentSize.Y + 10)
+end)
 
 -- Intro Sequence
 task.spawn(function()
@@ -701,12 +799,12 @@ PopulateKeybindsDisplay = function()
             PopulateKeybindsDisplay()
         end)
     end
-    KbContainer.CanvasSize = UDim2.new(0, 0, 0, KbListLayout.AbsoluteContentSize.Y)
+    KbContainer.CanvasSize = UDim2.new(0, 0, 0, KbListLayout.AbsoluteContentSize.Y + 10)
 end
 
 -- Teleport list refresh
 local function RefreshPlayerTeleportList()
-    for _, child in ipairs(TeleportWindow:GetChildren()) do
+    for _, child in ipairs(TpScrollFrame:GetChildren()) do
         if child:IsA("TextButton") then SafeDestroy(child) end
     end
     for _, playerObj in ipairs(Players:GetPlayers()) do
@@ -719,7 +817,7 @@ local function RefreshPlayerTeleportList()
             pBtn.Font = Enum.Font.Gotham
             pBtn.Text = "  Teleport to -> " .. playerObj.Name
             pBtn.TextXAlignment = Enum.TextXAlignment.Left
-            pBtn.Parent = TeleportWindow
+            pBtn.Parent = TpScrollFrame
 
             pBtn.MouseButton1Click:Connect(function()
                 pcall(function()
@@ -731,7 +829,7 @@ local function RefreshPlayerTeleportList()
             end)
         end
     end
-    TeleportWindow.CanvasSize = UDim2.new(0, 0, 0, TpLayout.AbsoluteContentSize.Y)
+    TpScrollFrame.CanvasSize = UDim2.new(0, 0, 0, TpLayout.AbsoluteContentSize.Y + 10)
 end
 
 Players.PlayerAdded:Connect(RefreshPlayerTeleportList)
@@ -1346,5 +1444,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     RefreshControlRowTexts()
 end)
 
-print("[ScriptSense v7.5.0]: Draggable windows enabled, title updated to SCRIPT SENSE.")
+print("[ScriptSense v7.5.1]: Title updated to SCRIPT SENSE, top-bar drag handles & element clipping fixed.")
 return ScriptSense
