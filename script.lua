@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.4.0"
+ScriptSense.Version = "7.5.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -8,7 +8,6 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 
@@ -112,6 +111,44 @@ ScreenGui.Parent = RootGuiParent
 
 local IsMobileDevice = UserInputService.TouchEnabled
 
+-- Draggable Utility Function
+local function MakeDraggable(frame, handle)
+    handle = handle or frame
+    local dragging, dragInput, dragStart, startPos
+    
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
 -- Watermark Container
 local WatermarkContainer = Instance.new("Frame")
 WatermarkContainer.Name = "WatermarkContainer"
@@ -172,6 +209,8 @@ MainControlPanel.BorderSizePixel = 0
 MainControlPanel.Visible = false
 MainControlPanel.Parent = ScreenGui
 
+MakeDraggable(MainControlPanel, MainControlPanel)
+
 local PanelStroke = Instance.new("UIStroke")
 PanelStroke.Color = Color3.fromRGB(50, 50, 50)
 PanelStroke.Thickness = 2
@@ -187,7 +226,7 @@ end
 
 MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 
--- Keybinds Menu Window (With Mouse Wheel Scroll support)
+-- Keybinds Menu Window (With Mouse Wheel Scroll support & Draggable)
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
 KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 390)
@@ -196,6 +235,8 @@ KeybindsMenuWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 KeybindsMenuWindow.BorderSizePixel = 0
 KeybindsMenuWindow.Visible = false
 KeybindsMenuWindow.Parent = ScreenGui
+
+MakeDraggable(KeybindsMenuWindow, KeybindsMenuWindow)
 
 local KbStroke = Instance.new("UIStroke")
 KbStroke.Color = Color3.fromRGB(70, 70, 70)
@@ -382,6 +423,8 @@ TeleportWindow.Active = true
 TeleportWindow.Visible = false
 TeleportWindow.Parent = ScreenGui
 
+MakeDraggable(TeleportWindow, TeleportWindow)
+
 local TpStroke = Instance.new("UIStroke")
 TpStroke.Color = Color3.fromRGB(70, 70, 70)
 TpStroke.Thickness = 2
@@ -406,6 +449,8 @@ FlingWindow.BorderSizePixel = 0
 FlingWindow.Visible = false
 FlingWindow.Parent = ScreenGui
 
+MakeDraggable(FlingWindow, FlingWindow)
+
 local FlingStroke = Instance.new("UIStroke")
 FlingStroke.Color = Color3.fromRGB(70, 70, 70)
 FlingStroke.Thickness = 2
@@ -422,7 +467,7 @@ FlingTitle.Size = UDim2.new(1, -35, 1, 0)
 FlingTitle.Position = UDim2.new(0, 10, 0, 0)
 FlingTitle.BackgroundTransparency = 1
 FlingTitle.RichText = true
-FlingTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE MULTI FLING</font>'
+FlingTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font>'
 FlingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 FlingTitle.Font = Enum.Font.GothamBold
 FlingTitle.TextSize = 14
@@ -537,7 +582,7 @@ verticalOffset = verticalOffset + 42
 
 -- Intro Sequence
 task.spawn(function()
-    local fullText = "SCRIPT SENSE MULTI FLING"
+    local fullText = "SCRIPT SENSE"
     local totalChars = #fullText
     local totalDuration = 2.0
     local charDelay = totalDuration / totalChars
@@ -546,7 +591,7 @@ task.spawn(function()
         local scriptPart = string.sub("SCRIPT", 1, math.min(count, 6))
         local res = '<font color="#FFFFFF">' .. scriptPart .. '</font>'
         if count > 6 then
-            res = res .. '<font color="#FF0000">' .. string.sub(" SENSE MULTI FLING", 1, count - 6) .. '</font>'
+            res = res .. '<font color="#FF0000">' .. string.sub(" SENSE", 1, count - 6) .. '</font>'
         end
         return res
     end
@@ -555,7 +600,7 @@ task.spawn(function()
         WatermarkLabel.Text = getPartialText(i)
         task.wait(charDelay)
     end
-    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE MULTI FLING</font>'
+    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font>'
 
     local currentAbsPos = WatermarkContainer.AbsolutePosition
     WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
@@ -1036,7 +1081,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. Speedhack Engine (Configurable speed & dynamic status)
+-- 3. Speedhack Engine
 RunService.Stepped:Connect(function()
     local character = LocalPlayer.Character
     local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -1245,7 +1290,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- 9. Anti-Aim Engine (Works perfectly even during ShiftLock)
+-- 9. Anti-Aim Engine
 RunService.RenderStepped:Connect(function()
     local character = LocalPlayer.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -1301,5 +1346,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     RefreshControlRowTexts()
 end)
 
-print("[ScriptSense v7.4.0]: Fully integrated with Wheel Scroll, ShiftLock Anti-Aim, and Speedhack.")
+print("[ScriptSense v7.5.0]: Draggable windows enabled, title updated to SCRIPT SENSE.")
 return ScriptSense
