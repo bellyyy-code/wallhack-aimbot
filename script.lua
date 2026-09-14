@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "6.8.0"
+ScriptSense.Version = "7.3.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -46,10 +46,13 @@ ScriptSense.Config = {
     FlyEnabled = false,
     SkeletonEspEnabled = false,
     BoxEspEnabled = false,
+    NameEspEnabled = false,
     AntiAimEnabled = false,
-    TouchFlingEnabled = false,
+    SpeedhackEnabled = false,
+    FovCircleEnabled = true,
 
     FlySpeed = 50,
+    WalkSpeedValue = 32,
     SpinSpeed = 25,
     AimbotSmoothness = 4,
     AimbotFovRadius = 150,
@@ -62,8 +65,9 @@ ScriptSense.Config = {
         Fly = Enum.KeyCode.F,
         Skeleton = Enum.KeyCode.X,
         BoxEsp = Enum.KeyCode.B,
+        NameEsp = Enum.KeyCode.N,
         AntiAim = Enum.KeyCode.U,
-        TouchFling = Enum.KeyCode.K,
+        Speedhack = Enum.KeyCode.V,
         MenuToggle = Enum.KeyCode.Backquote,
     }
 }
@@ -74,7 +78,7 @@ local function SafeDestroy(instance)
     end
 end
 
--- Full Cleanup: clear from both gethui() and CoreGui to prevent caching
+-- Full Cleanup
 local successHui, huiContainer = pcall(function() return gethui() end)
 if successHui and huiContainer then
     for _, child in ipairs(huiContainer:GetChildren()) do
@@ -93,17 +97,9 @@ pcall(function()
 end)
 
 local RootGuiParent = nil
-pcall(function()
-    RootGuiParent = gethui()
-end)
-if not RootGuiParent then
-    pcall(function()
-        RootGuiParent = CoreGui
-    end)
-end
-if not RootGuiParent then
-    RootGuiParent = LocalPlayer:WaitForChild("PlayerGui")
-end
+pcall(function() RootGuiParent = gethui() end)
+if not RootGuiParent then pcall(function() RootGuiParent = CoreGui end) end
+if not RootGuiParent then RootGuiParent = LocalPlayer:WaitForChild("PlayerGui") end
 
 -- Main UI Container
 local ScreenGui = Instance.new("ScreenGui")
@@ -136,12 +132,11 @@ WatermarkLabel.Name = "WatermarkLabel"
 WatermarkLabel.Size = UDim2.new(0, 0, 1, 0)
 WatermarkLabel.AutomaticSize = Enum.AutomaticSize.X
 WatermarkLabel.BackgroundTransparency = 1
-WatermarkLabel.TextSize = 28
+WatermarkLabel.TextSize = 24
 WatermarkLabel.Font = Enum.Font.GothamBold
 WatermarkLabel.RichText = true
 WatermarkLabel.Text = ""
 WatermarkLabel.TextXAlignment = Enum.TextXAlignment.Left
-WatermarkLabel.TextTransparency = 0
 WatermarkLabel.LayoutOrder = 1
 WatermarkLabel.Parent = WatermarkContainer
 
@@ -168,7 +163,7 @@ ArrowStroke.Parent = MenuToggleArrow
 -- Main Control Panel Frame
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
-MainControlPanel.Size = UDim2.new(0, 240, 0, 540)
+MainControlPanel.Size = UDim2.new(0, 240, 0, 500)
 MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
@@ -190,11 +185,11 @@ end
 
 MenuToggleArrow.MouseButton1Click:Connect(ToggleMenuVisibility)
 
--- Dedicated Interactive Keybinds Menu Window
+-- Keybinds Menu Window
 local KeybindsMenuWindow = Instance.new("Frame")
 KeybindsMenuWindow.Name = "KeybindsMenuWindow"
-KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 380)
-KeybindsMenuWindow.Position = UDim2.new(0.5, -150, 0.5, -190)
+KeybindsMenuWindow.Size = UDim2.new(0, 300, 0, 390)
+KeybindsMenuWindow.Position = UDim2.new(0.5, -150, 0.5, -195)
 KeybindsMenuWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 KeybindsMenuWindow.BorderSizePixel = 0
 KeybindsMenuWindow.Visible = false
@@ -207,12 +202,11 @@ KbStroke.Parent = KeybindsMenuWindow
 
 local KbTitle = Instance.new("TextLabel")
 KbTitle.Size = UDim2.new(1, 0, 0, 40)
-KbTitle.Position = UDim2.new(0, 0, 0, 0)
 KbTitle.BackgroundTransparency = 1
 KbTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 KbTitle.TextSize = 14
 KbTitle.Font = Enum.Font.GothamBold
-KbTitle.Text = "  KEYBIND MANAGER (Click to rebind)"
+KbTitle.Text = "  KEYBIND MANAGER"
 KbTitle.TextXAlignment = Enum.TextXAlignment.Left
 KbTitle.Parent = KeybindsMenuWindow
 
@@ -233,12 +227,9 @@ KbListLayout.Parent = KbContainer
 local PopulateKeybindsDisplay
 local ToggleKeybindsMenu = function()
     KeybindsMenuWindow.Visible = not KeybindsMenuWindow.Visible
-    if KeybindsMenuWindow.Visible then
-        PopulateKeybindsDisplay()
-    end
+    if KeybindsMenuWindow.Visible then PopulateKeybindsDisplay() end
 end
 
-local UIComponentRegistry = {}
 local controlRowFrames = {}
 
 local function CreateControlRow(parent, posY, initialText, callback)
@@ -274,10 +265,7 @@ local function CreateControlRow(parent, posY, initialText, callback)
 
     if callback then
         button.MouseButton1Click:Connect(function()
-            local success, err = pcall(callback)
-            if not success and err then
-                warn("[ScriptSense Error]: " .. tostring(err))
-            end
+            pcall(callback)
         end)
     end
 
@@ -285,95 +273,59 @@ local function CreateControlRow(parent, posY, initialText, callback)
     return rowFrame, button
 end
 
-local startFlingThread
 local activeRebindKey = nil
-
 local function GetKeyName(keyCode)
     local name = keyCode.Name
     if name == "Backquote" then return "`" end
     return string.lower(name)
 end
 
--- Hidden KickFling / DropKick Engine
-getgenv().DropKickActive = false
-local kickFlingLoop = nil
-
-local function ToggleKickFling()
-    getgenv().DropKickActive = not getgenv().DropKickActive
-    if getgenv().DropKickActive then
-        if not kickFlingLoop then
-            kickFlingLoop = task.spawn(function()
-                while getgenv().DropKickActive do
-                    RunService.Heartbeat:Wait()
-                    local character = LocalPlayer.Character
-                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local currentVel = hrp.Velocity
-                        hrp.Velocity = currentVel * 4000 + Vector3.new(0, 6000, 0)
-                        RunService.RenderStepped:Wait()
-                        hrp.Velocity = currentVel
-                    end
-                end
-                kickFlingLoop = nil
-            end)
-        end
-    end
-end
-
--- Populate Main Control Panel Rows
+-- Populate Panel Rows
 local verticalOffset = 15
 
-local _, wallhackRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "wallhack: off | bind: g", function()
+CreateControlRow(MainControlPanel, verticalOffset, "wallhack: off | bind: g", function()
     ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
 end)
-UIComponentRegistry["wallhack"] = wallhackRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, aimbotRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "aimbot: off | bind: r", function()
-    if not IsRobloxMenuOpen() then
-        ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled
-    end
+CreateControlRow(MainControlPanel, verticalOffset, "aimbot: off | bind: r", function()
+    if not IsRobloxMenuOpen() then ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled end
 end)
-UIComponentRegistry["aimbot"] = aimbotRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, godmodeRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "godmode: off | bind: c", function()
+CreateControlRow(MainControlPanel, verticalOffset, "godmode: off | bind: c", function()
     ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
 end)
-UIComponentRegistry["godmode"] = godmodeRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, flyRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "fly: off | bind: f", function()
+CreateControlRow(MainControlPanel, verticalOffset, "fly: off | bind: f", function()
     ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
 end)
-UIComponentRegistry["fly"] = flyRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, skeletonRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "skeleton esp: off | bind: x", function()
+CreateControlRow(MainControlPanel, verticalOffset, "skeleton esp: off | bind: x", function()
     ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
 end)
-UIComponentRegistry["skeleton"] = skeletonRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, boxEspRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "box esp: off | bind: b", function()
+CreateControlRow(MainControlPanel, verticalOffset, "box esp: off | bind: b", function()
     ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
 end)
-UIComponentRegistry["boxesp"] = boxEspRowBtn
 verticalOffset = verticalOffset + 42
 
-local _, antiAimRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "anti-aim: off | bind: u", function()
+CreateControlRow(MainControlPanel, verticalOffset, "name esp: off | bind: n", function()
+    ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
+end)
+verticalOffset = verticalOffset + 42
+
+CreateControlRow(MainControlPanel, verticalOffset, "speedhack: off | bind: v", function()
+    ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
+end)
+verticalOffset = verticalOffset + 42
+
+CreateControlRow(MainControlPanel, verticalOffset, "anti-aim: off | bind: u", function()
     ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
 end)
-UIComponentRegistry["anti-aim"] = antiAimRowBtn
-verticalOffset = verticalOffset + 42
-
-local _, touchFlingRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "touchfling: off | bind: k", function()
-    ScriptSense.Config.TouchFlingEnabled = not ScriptSense.Config.TouchFlingEnabled
-    if ScriptSense.Config.TouchFlingEnabled then
-        startFlingThread()
-    end
-end)
-UIComponentRegistry["touchfling"] = touchFlingRowBtn
 verticalOffset = verticalOffset + 42
 
 -- Teleport Window
@@ -401,11 +353,11 @@ CreateControlRow(MainControlPanel, verticalOffset, "teleport menu", function()
 end)
 verticalOffset = verticalOffset + 42
 
--- Fling GUI Window
+-- Multi Fling Window (SCRIPT(WHITE) SENSE(RED) MULTI FLING(RED))
 local FlingWindow = Instance.new("Frame")
 FlingWindow.Name = "FlingWindow"
-FlingWindow.Size = UDim2.new(0, 300, 0, 220)
-FlingWindow.Position = UDim2.new(0.5, -150, 0.5, -110)
+FlingWindow.Size = UDim2.new(0, 300, 0, 390)
+FlingWindow.Position = UDim2.new(0.5, -150, 0.5, -195)
 FlingWindow.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 FlingWindow.BorderSizePixel = 0
 FlingWindow.Visible = false
@@ -416,76 +368,132 @@ FlingStroke.Color = Color3.fromRGB(70, 70, 70)
 FlingStroke.Thickness = 2
 FlingStroke.Parent = FlingWindow
 
+local FlingTitleBar = Instance.new("Frame")
+FlingTitleBar.Size = UDim2.new(1, 0, 0, 35)
+FlingTitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+FlingTitleBar.BorderSizePixel = 0
+FlingTitleBar.Parent = FlingWindow
+
 local FlingTitle = Instance.new("TextLabel")
-FlingTitle.Size = UDim2.new(1, 0, 0, 40)
+FlingTitle.Size = UDim2.new(1, -35, 1, 0)
+FlingTitle.Position = UDim2.new(0, 10, 0, 0)
 FlingTitle.BackgroundTransparency = 1
+FlingTitle.RichText = true
+FlingTitle.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE MULTI FLING</font>'
 FlingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-FlingTitle.TextSize = 14
 FlingTitle.Font = Enum.Font.GothamBold
-FlingTitle.Text = "  FLING GUI & CONTROLS"
+FlingTitle.TextSize = 14
 FlingTitle.TextXAlignment = Enum.TextXAlignment.Left
-FlingTitle.Parent = FlingWindow
+FlingTitle.Parent = FlingTitleBar
 
-local FlingContainer = Instance.new("Frame")
-FlingContainer.Size = UDim2.new(1, 0, 1, -40)
-FlingContainer.Position = UDim2.new(0, 0, 0, 40)
-FlingContainer.BackgroundTransparency = 1
-FlingContainer.Parent = FlingWindow
+local FlingCloseBtn = Instance.new("TextButton")
+FlingCloseBtn.Size = UDim2.new(0, 35, 0, 35)
+FlingCloseBtn.Position = UDim2.new(1, -35, 0, 0)
+FlingCloseBtn.BackgroundTransparency = 1
+FlingCloseBtn.Text = "✕"
+FlingCloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+FlingCloseBtn.Font = Enum.Font.GothamBold
+FlingCloseBtn.TextSize = 14
+FlingCloseBtn.Parent = FlingTitleBar
 
-local FlingListLayout = Instance.new("UIListLayout")
-FlingListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-FlingListLayout.Padding = UDim.new(0, 6)
-FlingListLayout.Parent = FlingContainer
-
-local fBtn1 = Instance.new("TextButton")
-fBtn1.Size = UDim2.new(1, -20, 0, 40)
-fBtn1.Position = UDim2.new(0, 10, 0, 10)
-fBtn1.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-fBtn1.TextColor3 = Color3.fromRGB(255, 255, 255)
-fBtn1.TextSize = 13
-fBtn1.Font = Enum.Font.GothamMedium
-fBtn1.Text = "  Toggle TouchFling (Bind: K)"
-fBtn1.TextXAlignment = Enum.TextXAlignment.Left
-fBtn1.Parent = FlingContainer
-
-fBtn1.MouseButton1Click:Connect(function()
-    ScriptSense.Config.TouchFlingEnabled = not ScriptSense.Config.TouchFlingEnabled
-    if ScriptSense.Config.TouchFlingEnabled then
-        startFlingThread()
-    end
-    fBtn1.Text = "  TouchFling: " .. (ScriptSense.Config.TouchFlingEnabled and "ON" or "OFF")
+FlingCloseBtn.MouseButton1Click:Connect(function()
+    FlingWindow.Visible = false
 end)
 
-local fBtn2 = Instance.new("TextButton")
-fBtn2.Size = UDim2.new(1, -20, 0, 40)
-fBtn2.Position = UDim2.new(0, 10, 0, 60)
-fBtn2.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-fBtn2.TextColor3 = Color3.fromRGB(255, 255, 255)
-fBtn2.TextSize = 13
-fBtn2.Font = Enum.Font.GothamMedium
-fBtn2.Text = "  Toggle KickFling / DropKick (Bind: Z)"
-fBtn2.TextXAlignment = Enum.TextXAlignment.Left
-fBtn2.Parent = FlingContainer
+local FlingStatusLabel = Instance.new("TextLabel")
+FlingStatusLabel.Position = UDim2.new(0, 10, 0, 45)
+FlingStatusLabel.Size = UDim2.new(1, -20, 0, 25)
+FlingStatusLabel.BackgroundTransparency = 1
+FlingStatusLabel.Text = "Select targets to fling"
+FlingStatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlingStatusLabel.Font = Enum.Font.Gotham
+FlingStatusLabel.TextSize = 13
+FlingStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+FlingStatusLabel.Parent = FlingWindow
 
-fBtn2.MouseButton1Click:Connect(function()
-    ToggleKickFling()
-    fBtn2.Text = "  KickFling: " .. (getgenv().DropKickActive and "ON" or "OFF")
-end)
+local SelectionFrame = Instance.new("Frame")
+SelectionFrame.Position = UDim2.new(0, 10, 0, 75)
+SelectionFrame.Size = UDim2.new(1, -20, 0, 190)
+SelectionFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+SelectionFrame.BorderSizePixel = 0
+SelectionFrame.Parent = FlingWindow
 
-CreateControlRow(MainControlPanel, verticalOffset, "fling gui menu", function()
+local SelStroke = Instance.new("UIStroke")
+SelStroke.Color = Color3.fromRGB(45, 45, 45)
+SelStroke.Thickness = 1
+SelStroke.Parent = SelectionFrame
+
+local PlayerScrollFrame = Instance.new("ScrollingFrame")
+PlayerScrollFrame.Position = UDim2.new(0, 5, 0, 5)
+PlayerScrollFrame.Size = UDim2.new(1, -10, 1, -10)
+PlayerScrollFrame.BackgroundTransparency = 1
+PlayerScrollFrame.BorderSizePixel = 0
+PlayerScrollFrame.ScrollBarThickness = 4
+PlayerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerScrollFrame.Parent = SelectionFrame
+
+local PlayerListLayout = Instance.new("UIListLayout")
+PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+PlayerListLayout.Padding = UDim.new(0, 4)
+PlayerListLayout.Parent = PlayerScrollFrame
+
+local FlingStartButton = Instance.new("TextButton")
+FlingStartButton.Position = UDim2.new(0, 10, 0, 275)
+FlingStartButton.Size = UDim2.new(0.5, -15, 0, 35)
+FlingStartButton.BackgroundColor3 = Color3.fromRGB(0, 150, 60)
+FlingStartButton.BorderSizePixel = 0
+FlingStartButton.Text = "START FLING"
+FlingStartButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlingStartButton.Font = Enum.Font.GothamBold
+FlingStartButton.TextSize = 13
+FlingStartButton.Parent = FlingWindow
+
+local FlingStopButton = Instance.new("TextButton")
+FlingStopButton.Position = UDim2.new(0.5, 5, 0, 275)
+FlingStopButton.Size = UDim2.new(0.5, -15, 0, 35)
+FlingStopButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+FlingStopButton.BorderSizePixel = 0
+FlingStopButton.Text = "STOP FLING"
+FlingStopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlingStopButton.Font = Enum.Font.GothamBold
+FlingStopButton.TextSize = 13
+FlingStopButton.Parent = FlingWindow
+
+local SelectAllButton = Instance.new("TextButton")
+SelectAllButton.Position = UDim2.new(0, 10, 0, 320)
+SelectAllButton.Size = UDim2.new(0.5, -15, 0, 30)
+SelectAllButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+SelectAllButton.BorderSizePixel = 0
+SelectAllButton.Text = "SELECT ALL"
+SelectAllButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SelectAllButton.Font = Enum.Font.GothamMedium
+SelectAllButton.TextSize = 12
+SelectAllButton.Parent = FlingWindow
+
+local DeselectAllButton = Instance.new("TextButton")
+DeselectAllButton.Position = UDim2.new(0.5, 5, 0, 320)
+DeselectAllButton.Size = UDim2.new(0.5, -15, 0, 30)
+DeselectAllButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+DeselectAllButton.BorderSizePixel = 0
+DeselectAllButton.Text = "DESELECT ALL"
+DeselectAllButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DeselectAllButton.Font = Enum.Font.GothamMedium
+DeselectAllButton.TextSize = 12
+DeselectAllButton.Parent = FlingWindow
+
+CreateControlRow(MainControlPanel, verticalOffset, "multi fling menu", function()
     FlingWindow.Visible = not FlingWindow.Visible
 end)
 verticalOffset = verticalOffset + 42
 
-local _, menuToggleRowBtn = CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
+CreateControlRow(MainControlPanel, verticalOffset, "keybinds menu | bind: `", function()
     ToggleKeybindsMenu()
 end)
-UIComponentRegistry["menutoggle"] = menuToggleRowBtn
 verticalOffset = verticalOffset + 42
 
--- Intro Sequence (2s Typewriter)
+-- Intro Sequence (SCRIPT SENSE MULTI FLING)
 task.spawn(function()
-    local fullText = "SCRIPT SENSE [v6.8.0]"
+    local fullText = "SCRIPT SENSE MULTI FLING"
     local totalChars = #fullText
     local totalDuration = 2.0
     local charDelay = totalDuration / totalChars
@@ -493,17 +501,9 @@ task.spawn(function()
     local function getPartialText(count)
         local scriptPart = string.sub("SCRIPT", 1, math.min(count, 6))
         local res = '<font color="#FFFFFF">' .. scriptPart .. '</font>'
-        
         if count > 6 then
-            local spaceAndSense = string.sub(" SENSE", 1, count - 6)
-            res = res .. '<font color="#FF0000">' .. spaceAndSense .. '</font>'
+            res = res .. '<font color="#FF0000">' .. string.sub(" SENSE MULTI FLING", 1, count - 6) .. '</font>'
         end
-        
-        if count > 12 then
-            local spaceAndVer = string.sub(" [v6.8.0]", 1, count - 12)
-            res = res .. '<font color="#AAAAAA">' .. spaceAndVer .. '</font>'
-        end
-        
         return res
     end
 
@@ -511,75 +511,47 @@ task.spawn(function()
         WatermarkLabel.Text = getPartialText(i)
         task.wait(charDelay)
     end
-    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">[v6.8.0]</font>'
+    WatermarkLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE MULTI FLING</font>'
 
     local currentAbsPos = WatermarkContainer.AbsolutePosition
     WatermarkContainer.AnchorPoint = Vector2.new(0, 0)
     WatermarkContainer.Position = UDim2.new(0, currentAbsPos.X, 0, currentAbsPos.Y)
 
     local transitionTweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-    local moveTween = TweenService:Create(WatermarkContainer, transitionTweenInfo, {
-        Position = UDim2.new(0, 20, 0, 20)
-    })
-    moveTween:Play()
+    TweenService:Create(WatermarkContainer, transitionTweenInfo, { Position = UDim2.new(0, 20, 0, 20) }):Play()
 
     local textSizeVal = Instance.new("NumberValue")
-    textSizeVal.Value = 28
-    textSizeVal.Changed:Connect(function(v)
-        WatermarkLabel.TextSize = v
-    end)
-    TweenService:Create(textSizeVal, transitionTweenInfo, { Value = 16 }):Play()
+    textSizeVal.Value = 24
+    textSizeVal.Changed:Connect(function(v) WatermarkLabel.TextSize = v end)
+    TweenService:Create(textSizeVal, transitionTweenInfo, { Value = 14 }):Play()
     task.delay(0.45, function() SafeDestroy(textSizeVal) end)
 
-    TweenService:Create(MenuToggleArrow, transitionTweenInfo, {
-        TextTransparency = 0,
-        BackgroundTransparency = 0
-    }):Play()
-    TweenService:Create(ArrowStroke, transitionTweenInfo, {
-        Transparency = 0
-    }):Play()
+    TweenService:Create(MenuToggleArrow, transitionTweenInfo, { TextTransparency = 0, BackgroundTransparency = 0 }):Play()
+    TweenService:Create(ArrowStroke, transitionTweenInfo, { Transparency = 0 }):Play()
 
-    moveTween.Completed:Wait()
-    task.wait(0.2)
-
-    if not IsMobileDevice then
-        MainControlPanel.Visible = true
-        isPanelVisible = true
-    end
-
-    TweenService:Create(PanelStroke, transitionTweenInfo, {
-        Transparency = 0
-    }):Play()
+    task.wait(0.6)
+    if not IsMobileDevice then MainControlPanel.Visible = true isPanelVisible = true end
+    TweenService:Create(PanelStroke, transitionTweenInfo, { Transparency = 0 }):Play()
 
     for index, rowFrame in ipairs(controlRowFrames) do
         if rowFrame then
-            task.delay((index - 1) * 0.03 + 0.03, function()
+            task.delay((index - 1) * 0.02 + 0.03, function()
                 rowFrame.Visible = true
                 local rowTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
                 TweenService:Create(rowFrame, rowTweenInfo, { BackgroundTransparency = 0.2 }):Play()
-                
                 local stroke = rowFrame:FindFirstChildOfClass("UIStroke")
-                if stroke then
-                    TweenService:Create(stroke, rowTweenInfo, { Transparency = 0 }):Play()
-                end
-
+                if stroke then TweenService:Create(stroke, rowTweenInfo, { Transparency = 0 }):Play() end
                 local btn = rowFrame:FindFirstChildOfClass("TextButton")
-                if btn then
-                    TweenService:Create(btn, rowTweenInfo, { TextTransparency = 0 }):Play()
-                end
+                if btn then TweenService:Create(btn, rowTweenInfo, { TextTransparency = 0 }):Play() end
             end)
         end
     end
 end)
 
--- Populate Interactive Keybinds Menu Content
+-- Keybinds window population
 PopulateKeybindsDisplay = function()
     for _, child in ipairs(KbContainer:GetChildren()) do
-        if child:IsA("Frame") then
-            SafeDestroy(child)
-        end
+        if child:IsA("Frame") then SafeDestroy(child) end
     end
 
     local bindsData = {
@@ -589,14 +561,14 @@ PopulateKeybindsDisplay = function()
         {"Fly", "Fly", ScriptSense.Config.Keybinds.Fly},
         {"Skeleton ESP", "Skeleton", ScriptSense.Config.Keybinds.Skeleton},
         {"Box ESP", "BoxEsp", ScriptSense.Config.Keybinds.BoxEsp},
+        {"Name ESP", "NameEsp", ScriptSense.Config.Keybinds.NameEsp},
+        {"Speedhack", "Speedhack", ScriptSense.Config.Keybinds.Speedhack},
         {"Anti-Aim", "AntiAim", ScriptSense.Config.Keybinds.AntiAim},
-        {"TouchFling", "TouchFling", ScriptSense.Config.Keybinds.TouchFling},
         {"Menu Toggle", "MenuToggle", ScriptSense.Config.Keybinds.MenuToggle},
     }
 
     for _, data in ipairs(bindsData) do
         local labelName, configKey, keyCode = data[1], data[2], data[3]
-
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, -10, 0, 35)
         row.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
@@ -633,17 +605,14 @@ PopulateKeybindsDisplay = function()
             PopulateKeybindsDisplay()
         end)
     end
-
     KbContainer.CanvasSize = UDim2.new(0, 0, 0, KbListLayout.AbsoluteContentSize.Y)
 end
 
+-- Teleport list refresh
 local function RefreshPlayerTeleportList()
     for _, child in ipairs(TeleportWindow:GetChildren()) do
-        if child:IsA("TextButton") then
-            SafeDestroy(child)
-        end
+        if child:IsA("TextButton") then SafeDestroy(child) end
     end
-
     for _, playerObj in ipairs(Players:GetPlayers()) do
         if playerObj ~= LocalPlayer then
             local pBtn = Instance.new("TextButton")
@@ -658,12 +627,9 @@ local function RefreshPlayerTeleportList()
 
             pBtn.MouseButton1Click:Connect(function()
                 pcall(function()
-                    local targetChar = playerObj.Character
-                    local localChar = LocalPlayer.Character
-                    if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-                        if localChar and localChar:FindFirstChild("HumanoidRootPart") then
-                            localChar.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-                        end
+                    local tChar, lChar = playerObj.Character, LocalPlayer.Character
+                    if tChar and tChar:FindFirstChild("HumanoidRootPart") and lChar and lChar:FindFirstChild("HumanoidRootPart") then
+                        lChar.HumanoidRootPart.CFrame = tChar.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
                     end
                 end)
             end)
@@ -676,15 +642,294 @@ Players.PlayerAdded:Connect(RefreshPlayerTeleportList)
 Players.PlayerRemoving:Connect(RefreshPlayerTeleportList)
 RefreshPlayerTeleportList()
 
+-- Multi Fling Logic Setup
+local SelectedTargets = {}
+local PlayerCheckboxes = {}
+local FlingActive = false
+getgenv().OldPos = nil
+getgenv().FPDH = workspace.FallenPartsDestroyHeight
+
+local function Message(Title, Text, Time)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = Title,
+            Text = Text,
+            Duration = Time or 5
+        })
+    end)
+end
+
+local function CountSelectedTargets()
+    local count = 0
+    for _ in pairs(SelectedTargets) do count = count + 1 end
+    return count
+end
+
+local function UpdateFlingStatus()
+    local count = CountSelectedTargets()
+    if FlingActive then
+        FlingStatusLabel.Text = "Flinging " .. count .. " target(s)"
+        FlingStatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+    else
+        FlingStatusLabel.Text = count .. " target(s) selected" 
+        FlingStatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+end
+
+local function RefreshFlingPlayerList()
+    for _, child in pairs(PlayerScrollFrame:GetChildren()) do
+        if child:IsA("Frame") then SafeDestroy(child) end
+    end
+    PlayerCheckboxes = {}
+    
+    local PlayerList = Players:GetPlayers()
+    table.sort(PlayerList, function(a, b) return a.Name:lower() < b.Name:lower() end)
+    
+    local yPosition = 0
+    for _, player in ipairs(PlayerList) do
+        if player ~= LocalPlayer then
+            local PlayerEntry = Instance.new("Frame")
+            PlayerEntry.Size = UDim2.new(1, -10, 0, 30)
+            PlayerEntry.Position = UDim2.new(0, 5, 0, yPosition)
+            PlayerEntry.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            PlayerEntry.BorderSizePixel = 0
+            PlayerEntry.Parent = PlayerScrollFrame
+            
+            local Checkbox = Instance.new("TextButton")
+            Checkbox.Size = UDim2.new(0, 20, 0, 20)
+            Checkbox.Position = UDim2.new(0, 5, 0.5, -10)
+            Checkbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            Checkbox.BorderSizePixel = 0
+            Checkbox.Text = ""
+            Checkbox.Parent = PlayerEntry
+            
+            local Checkmark = Instance.new("TextLabel")
+            Checkmark.Size = UDim2.new(1, 0, 1, 0)
+            Checkmark.BackgroundTransparency = 1
+            Checkmark.Text = "✓"
+            Checkmark.TextColor3 = Color3.fromRGB(0, 255, 0)
+            Checkmark.TextSize = 14
+            Checkmark.Font = Enum.Font.GothamBold
+            Checkmark.Visible = SelectedTargets[player.Name] ~= nil
+            Checkmark.Parent = Checkbox
+            
+            local NameLabel = Instance.new("TextLabel")
+            NameLabel.Size = UDim2.new(1, -30, 1, 0)
+            NameLabel.Position = UDim2.new(0, 30, 0, 0)
+            NameLabel.BackgroundTransparency = 1
+            NameLabel.Text = player.Name
+            NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            NameLabel.TextSize = 13
+            NameLabel.Font = Enum.Font.Gotham
+            NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            NameLabel.Parent = PlayerEntry
+            
+            local ClickArea = Instance.new("TextButton")
+            ClickArea.Size = UDim2.new(1, 0, 1, 0)
+            ClickArea.BackgroundTransparency = 1
+            ClickArea.Text = ""
+            ClickArea.ZIndex = 2
+            ClickArea.Parent = PlayerEntry
+            
+            ClickArea.MouseButton1Click:Connect(function()
+                if SelectedTargets[player.Name] then
+                    SelectedTargets[player.Name] = nil
+                    Checkmark.Visible = false
+                else
+                    SelectedTargets[player.Name] = player
+                    Checkmark.Visible = true
+                end
+                UpdateFlingStatus()
+            end)
+            
+            PlayerCheckboxes[player.Name] = {
+                Entry = PlayerEntry,
+                Checkmark = Checkmark
+            }
+            
+            yPosition = yPosition + 34
+        end
+    end
+    PlayerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, yPosition)
+end
+
+local function ToggleAllPlayers(select)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local checkboxData = PlayerCheckboxes[player.Name]
+            if checkboxData then
+                if select then
+                    SelectedTargets[player.Name] = player
+                    checkboxData.Checkmark.Visible = true
+                else
+                    SelectedTargets[player.Name] = nil
+                    checkboxData.Checkmark.Visible = false
+                end
+            end
+        end
+    end
+    UpdateFlingStatus()
+end
+
+local function SkidFling(TargetPlayer)
+    local Character = LocalPlayer.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+    local TCharacter = TargetPlayer.Character
+    if not TCharacter then return end
+    
+    local THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
+    local TRootPart = THumanoid and THumanoid.RootPart
+    local THead = TCharacter:FindFirstChild("Head")
+    local Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    local Handle = Accessory and Accessory:FindFirstChild("Handle")
+    
+    if Character and Humanoid and RootPart then
+        if RootPart.Velocity.Magnitude < 50 then
+            getgenv().OldPos = RootPart.CFrame
+        end
+        
+        if THumanoid and THumanoid.Sit then return end
+        
+        if THead then
+            workspace.CurrentCamera.CameraSubject = THead
+        elseif Handle then
+            workspace.CurrentCamera.CameraSubject = Handle
+        elseif THumanoid and TRootPart then
+            workspace.CurrentCamera.CameraSubject = THumanoid
+        end
+        
+        local FPos = function(BasePart, Pos, Ang)
+            RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+            Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+            RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+        end
+        
+        local SFBasePart = function(BasePart)
+            local TimeToWait = 2
+            local Time = tick()
+            local Angle = 0
+            repeat
+                if RootPart and THumanoid then
+                    if BasePart.Velocity.Magnitude < 50 then
+                        Angle = Angle + 100
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                    else
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
+                        task.wait()
+                    end
+                end
+            until Time + TimeToWait < tick() or not FlingActive
+        end
+        
+        workspace.FallenPartsDestroyHeight = 0/0
+        
+        local BV = Instance.new("BodyVelocity")
+        BV.Parent = RootPart
+        BV.Velocity = Vector3.new(0, 0, 0)
+        BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        
+        if TRootPart then SFBasePart(TRootPart)
+        elseif THead then SFBasePart(THead)
+        elseif Handle then SFBasePart(Handle) end
+        
+        BV:Destroy()
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        workspace.CurrentCamera.CameraSubject = Humanoid
+        
+        if getgenv().OldPos then
+            repeat
+                RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+                Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+                Humanoid:ChangeState("GettingUp")
+                for _, part in pairs(Character:GetChildren()) do
+                    if part:IsA("BasePart") then part.Velocity, part.RotVelocity = Vector3.new(), Vector3.new() end
+                end
+                task.wait()
+            until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
+            workspace.FallenPartsDestroyHeight = getgenv().FPDH
+        end
+    end
+end
+
+local function StartFling()
+    if FlingActive then return end
+    local count = CountSelectedTargets()
+    if count == 0 then
+        FlingStatusLabel.Text = "No targets selected!"
+        task.wait(1)
+        UpdateFlingStatus()
+        return
+    end
+    
+    FlingActive = true
+    UpdateFlingStatus()
+    Message("Started", "Flinging " .. count .. " targets", 2)
+    
+    task.spawn(function()
+        while FlingActive do
+            local validTargets = {}
+            for name, player in pairs(SelectedTargets) do
+                if player and player.Parent then
+                    validTargets[name] = player
+                else
+                    SelectedTargets[name] = nil
+                    local checkbox = PlayerCheckboxes[name]
+                    if checkbox then checkbox.Checkmark.Visible = false end
+                end
+            end
+            
+            for _, player in pairs(validTargets) do
+                if FlingActive then
+                    SkidFling(player)
+                    task.wait(0.1)
+                else
+                    break
+                end
+            end
+            UpdateFlingStatus()
+            task.wait(0.5)
+        end
+    end)
+end
+
+local function StopFling()
+    if not FlingActive then return end
+    FlingActive = false
+    UpdateFlingStatus()
+    Message("Stopped", "Fling has been stopped", 2)
+end
+
+FlingStartButton.MouseButton1Click:Connect(StartFling)
+FlingStopButton.MouseButton1Click:Connect(StopFling)
+SelectAllButton.MouseButton1Click:Connect(function() ToggleAllPlayers(true) end)
+DeselectAllButton.MouseButton1Click:Connect(function() ToggleAllPlayers(false) end)
+
+Players.PlayerAdded:Connect(RefreshFlingPlayerList)
+Players.PlayerRemoving:Connect(function(player)
+    if SelectedTargets[player.Name] then SelectedTargets[player.Name] = nil end
+    RefreshFlingPlayerList()
+    UpdateFlingStatus()
+end)
+
+RefreshFlingPlayerList()
+UpdateFlingStatus()
+
 -- 1. Wallhack Engine
 RunService.Stepped:Connect(function()
     if ScriptSense.Config.WallhackEnabled then
         local character = LocalPlayer.Character
         if character then
             for _, part in ipairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
+                if part:IsA("BasePart") then part.CanCollide = false end
             end
         end
     end
@@ -740,46 +985,22 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 3. TouchFling Engine
-if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
-    local detection = Instance.new("Decal")
-    detection.Name = "juisdfj0i32i0eidsuf0iok"
-    detection.Parent = ReplicatedStorage
-end
-
-local flingThread = nil
-startFlingThread = function()
-    if flingThread then return end
-    flingThread = coroutine.create(function()
-        local c, hrp, vel, movel = nil, nil, nil, 0.1
-        while ScriptSense.Config.TouchFlingEnabled do
-            RunService.Heartbeat:Wait()
-            c = LocalPlayer.Character
-            hrp = c and c:FindFirstChild("HumanoidRootPart")
-
-            if hrp then
-                vel = hrp.Velocity
-                hrp.Velocity = vel * 1000 + Vector3.new(0, 1000, 0)
-                RunService.RenderStepped:Wait()
-                hrp.Velocity = vel
-                RunService.Stepped:Wait()
-                hrp.Velocity = vel + Vector3.new(0, movel, 0)
-                movel = -movel
-            end
+-- 3. Speedhack Engine
+RunService.Stepped:Connect(function()
+    if ScriptSense.Config.SpeedhackEnabled then
+        local character = LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = ScriptSense.Config.WalkSpeedValue
         end
-        flingThread = nil
-    end)
-    coroutine.resume(flingThread)
-end
+    end
+end)
 
--- 4. Native Drawing Skeleton ESP Rendering Engine
+-- 4. Native Drawing Skeleton ESP
 local DrawingSkeletonRegistry = {}
-
 local function PurgeDrawingSkeleton(playerTarget)
     if DrawingSkeletonRegistry[playerTarget] then
-        for _, line in pairs(DrawingSkeletonRegistry[playerTarget]) do
-            pcall(function() line:Remove() end)
-        end
+        for _, line in pairs(DrawingSkeletonRegistry[playerTarget]) do pcall(function() line:Remove() end) end
         DrawingSkeletonRegistry[playerTarget] = nil
     end
 end
@@ -789,20 +1010,17 @@ RunService.RenderStepped:Connect(function()
         if playerObj ~= LocalPlayer and ScriptSense.Config.SkeletonEspEnabled then
             local character = playerObj.Character
             local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-
             if character and humanoid and humanoid.Health > 0 then
                 local head = character:FindFirstChild("Head")
-                local rootPart = character:FindFirstChild("HumanoidRootPart")
-                local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso") or rootPart
-                
-                local leftArm = character:FindFirstChild("LeftHand") or character:FindFirstChild("LeftLowerArm") or character:FindFirstChild("LeftUpperArm") or character:FindFirstChild("Left Arm")
-                local rightArm = character:FindFirstChild("RightHand") or character:FindFirstChild("RightLowerArm") or character:FindFirstChild("RightUpperArm") or character:FindFirstChild("Right Arm")
-                local leftLeg = character:FindFirstChild("LeftFoot") or character:FindFirstChild("LeftLowerLeg") or character:FindFirstChild("LeftUpperLeg") or character:FindFirstChild("Left Leg")
-                local rightLeg = character:FindFirstChild("RightFoot") or character:FindFirstChild("RightLowerLeg") or character:FindFirstChild("RightUpperLeg") or character:FindFirstChild("Right Leg")
+                local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+                local leftArm = character:FindFirstChild("LeftHand") or character:FindFirstChild("LeftLowerArm") or character:FindFirstChild("Left Arm")
+                local rightArm = character:FindFirstChild("RightHand") or character:FindFirstChild("RightLowerArm") or character:FindFirstChild("Right Arm")
+                local leftLeg = character:FindFirstChild("LeftFoot") or character:FindFirstChild("LeftLowerLeg") or character:FindFirstChild("Left Leg")
+                local rightLeg = character:FindFirstChild("RightFoot") or character:FindFirstChild("RightLowerLeg") or character:FindFirstChild("Right Leg")
 
                 if head and torso then
                     if not DrawingSkeletonRegistry[playerObj] then
-                        local successCreate, linesTable = pcall(function()
+                        local success, lines = pcall(function()
                             return {
                                 HeadToTorso = Drawing.new("Line"),
                                 TorsoToLeftArm = Drawing.new("Line"),
@@ -811,139 +1029,144 @@ RunService.RenderStepped:Connect(function()
                                 TorsoToRightLeg = Drawing.new("Line"),
                             }
                         end)
-                        if successCreate and linesTable then
-                            DrawingSkeletonRegistry[playerObj] = linesTable
-                            for _, line in pairs(linesTable) do
-                                pcall(function()
-                                    line.Visible = false
-                                    line.Color = Color3.fromRGB(255, 255, 255)
-                                    line.Thickness = 1.5
-                                    line.Transparency = 1
-                                end)
-                            end
+                        if success and lines then
+                            DrawingSkeletonRegistry[playerObj] = lines
+                            for _, l in pairs(lines) do l.Visible = false l.Color = Color3.fromRGB(0, 255, 255) l.Thickness = 1.5 end
                         end
                     end
-
                     local lines = DrawingSkeletonRegistry[playerObj]
                     if lines then
-                        local function updateLine(lineObj, partA, partB)
-                            if lineObj and partA and partB then
-                                local posA, visA = Camera:WorldToViewportPoint(partA.Position)
-                                local posB, visB = Camera:WorldToViewportPoint(partB.Position)
-                                if visA or visB then
-                                    lineObj.From = Vector2.new(posA.X, posA.Y)
-                                    lineObj.To = Vector2.new(posB.X, posB.Y)
-                                    lineObj.Visible = true
-                                else
-                                    lineObj.Visible = false
-                                end
-                            elseif lineObj then
-                                lineObj.Visible = false
-                            end
+                        local function upd(lObj, pA, pB)
+                            if lObj and pA and pB then
+                                local posA, vA = Camera:WorldToViewportPoint(pA.Position)
+                                local posB, vB = Camera:WorldToViewportPoint(pB.Position)
+                                if vA or vB then
+                                    lObj.From = Vector2.new(posA.X, posA.Y)
+                                    lObj.To = Vector2.new(posB.X, posB.Y)
+                                    lObj.Visible = true
+                                else lObj.Visible = false end
+                            elseif lObj then lObj.Visible = false end
                         end
-
-                        updateLine(lines.HeadToTorso, head, torso)
-                        updateLine(lines.TorsoToLeftArm, torso, leftArm)
-                        updateLine(lines.TorsoToRightArm, torso, rightArm)
-                        updateLine(lines.TorsoToLeftLeg, torso, leftLeg)
-                        updateLine(lines.TorsoToRightLeg, torso, rightLeg)
+                        upd(lines.HeadToTorso, head, torso)
+                        upd(lines.TorsoToLeftArm, torso, leftArm)
+                        upd(lines.TorsoToRightArm, torso, rightArm)
+                        upd(lines.TorsoToLeftLeg, torso, leftLeg)
+                        upd(lines.TorsoToRightLeg, torso, rightLeg)
                     end
-                else
-                    PurgeDrawingSkeleton(playerObj)
-                end
-            else
-                PurgeDrawingSkeleton(playerObj)
-            end
-        else
-            PurgeDrawingSkeleton(playerObj)
-        end
+                else PurgeDrawingSkeleton(playerObj) end
+            else PurgeDrawingSkeleton(playerObj) end
+        else PurgeDrawingSkeleton(playerObj) end
     end
 end)
 
-Players.PlayerRemoving:Connect(function(playerObj)
-    PurgeDrawingSkeleton(playerObj)
-end)
-
--- 5. Native Drawing Box ESP Rendering Engine (Precise Bounding Box)
+-- 5. Native Drawing Box ESP
 local DrawingBoxRegistry = {}
-
 local function PurgeDrawingBox(playerTarget)
-    if DrawingBoxRegistry[playerTarget] then
-        pcall(function() DrawingBoxRegistry[playerTarget]:Remove() end)
-        DrawingBoxRegistry[playerTarget] = nil
-    end
+    if DrawingBoxRegistry[playerTarget] then pcall(function() DrawingBoxRegistry[playerTarget]:Remove() end) DrawingBoxRegistry[playerTarget] = nil end
 end
 
 RunService.RenderStepped:Connect(function()
     for _, playerObj in ipairs(Players:GetPlayers()) do
         if playerObj ~= LocalPlayer and ScriptSense.Config.BoxEspEnabled then
             local character = playerObj.Character
-            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
             local hrp = character and character:FindFirstChild("HumanoidRootPart")
             local head = character and character:FindFirstChild("Head")
-
-            if character and humanoid and humanoid.Health > 0 and hrp and head then
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+            if character and hrp and head and humanoid and humanoid.Health > 0 then
                 if not DrawingBoxRegistry[playerObj] then
-                    local successCreate, boxObj = pcall(function()
+                    local success, box = pcall(function()
                         local sq = Drawing.new("Square")
-                        sq.Visible = false
-                        sq.Color = Color3.fromRGB(255, 255, 255)
-                        sq.Thickness = 1
-                        sq.Transparency = 1
-                        sq.Filled = false
+                        sq.Visible = false sq.Color = Color3.fromRGB(0, 255, 255) sq.Thickness = 1 sq.Filled = false
                         return sq
                     end)
-                    if successCreate and boxObj then
-                        DrawingBoxRegistry[playerObj] = boxObj
-                    end
+                    if success and box then DrawingBoxRegistry[playerObj] = box end
                 end
-
                 local box = DrawingBoxRegistry[playerObj]
                 if box then
-                    local rootPos, rootOnScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    if rootOnScreen then
+                    local rootPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen then
                         local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
                         local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
                         local height = math.abs(headPos.Y - legPos.Y)
                         local width = height / 2
-
                         box.Size = Vector2.new(width, height)
                         box.Position = Vector2.new(rootPos.X - width / 2, headPos.Y)
                         box.Visible = true
-                    else
-                        box.Visible = false
-                    end
+                    else box.Visible = false end
                 end
-            else
-                PurgeDrawingBox(playerObj)
-            end
-        else
-            PurgeDrawingBox(playerObj)
-        end
+            else PurgeDrawingBox(playerObj) end
+        else PurgeDrawingBox(playerObj) end
     end
 end)
 
-Players.PlayerRemoving:Connect(function(playerObj)
-    PurgeDrawingBox(playerObj)
+-- 6. Name ESP
+local DrawingNameRegistry = {}
+local function PurgeNameEsp(playerTarget)
+    if DrawingNameRegistry[playerTarget] then pcall(function() DrawingNameRegistry[playerTarget]:Remove() end) DrawingNameRegistry[playerTarget] = nil end
+end
+
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in ipairs(Players:GetPlayers()) do
+        if playerObj ~= LocalPlayer and ScriptSense.Config.NameEspEnabled then
+            local character = playerObj.Character
+            local head = character and character:FindFirstChild("Head")
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+            if character and head and humanoid and humanoid.Health > 0 then
+                if not DrawingNameRegistry[playerObj] then
+                    local success, txt = pcall(function()
+                        local t = Drawing.new("Text")
+                        t.Visible = false t.Center = true t.Outline = true t.Color = Color3.fromRGB(255, 255, 255) t.Size = 13
+                        return t
+                    end)
+                    if success and txt then DrawingNameRegistry[playerObj] = txt end
+                end
+                local txt = DrawingNameRegistry[playerObj]
+                if txt then
+                    local headPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1, 0))
+                    if onScreen then
+                        txt.Text = playerObj.Name .. " [" .. math.floor(humanoid.Health) .. "HP]"
+                        txt.Position = Vector2.new(headPos.X, headPos.Y)
+                        txt.Visible = true
+                    else txt.Visible = false end
+                end
+            else PurgeNameEsp(playerObj) end
+        else PurgeNameEsp(playerObj) end
+    end
 end)
 
--- 6. Aimbot Engine
+-- 7. Aimbot Engine + FOV Circle
+local FOVCircleDrawing = pcall(function() return Drawing.new("Circle") end) and Drawing.new("Circle") or nil
+if FOVCircleDrawing then
+    FOVCircleDrawing.Visible = false
+    FOVCircleDrawing.Thickness = 1
+    FOVCircleDrawing.Color = Color3.fromRGB(255, 255, 255)
+    FOVCircleDrawing.Filled = false
+    FOVCircleDrawing.Transparency = 0.5
+end
+
 RunService.RenderStepped:Connect(function()
+    if FOVCircleDrawing then
+        if ScriptSense.Config.AimbotEnabled and ScriptSense.Config.FovCircleEnabled and not IsRobloxMenuOpen() then
+            FOVCircleDrawing.Position = UserInputService:GetMouseLocation()
+            FOVCircleDrawing.Radius = ScriptSense.Config.AimbotFovRadius
+            FOVCircleDrawing.Visible = true
+        else
+            FOVCircleDrawing.Visible = false
+        end
+    end
+
     if ScriptSense.Config.AimbotEnabled and not IsRobloxMenuOpen() then
         local targetPlayer = nil
         local shortestDistance = ScriptSense.Config.AimbotFovRadius
-
         for _, playerObj in ipairs(Players:GetPlayers()) do
             if playerObj ~= LocalPlayer then
                 local character = playerObj.Character
                 local humanoid = character and character:FindFirstChildOfClass("Humanoid")
                 local head = character and character:FindFirstChild("Head")
-
                 if character and humanoid and humanoid.Health > 0 and head then
                     local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
                     if onScreen then
-                        local mouseLocation = UserInputService:GetMouseLocation()
-                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - mouseLocation).Magnitude
+                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - UserInputService:GetMouseLocation()).Magnitude
                         if distance < shortestDistance then
                             shortestDistance = distance
                             targetPlayer = playerObj
@@ -952,7 +1175,6 @@ RunService.RenderStepped:Connect(function()
                 end
             end
         end
-
         if targetPlayer and targetPlayer.Character then
             local targetHead = targetPlayer.Character:FindFirstChild("Head")
             if targetHead then
@@ -964,33 +1186,37 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 7. Godmode Engine
+-- 8. Godmode Engine
 RunService.Stepped:Connect(function()
     if ScriptSense.Config.GodmodeEnabled then
-        local character = LocalPlayer.Character
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            pcall(function()
-                humanoid.MaxHealth = math.huge
-                humanoid.Health = math.huge
-            end)
-        end
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then pcall(function() humanoid.MaxHealth = math.huge humanoid.Health = math.huge end) end
     end
 end)
 
--- 8. Anti-Aim Engine
+-- 9. Anti-Aim Engine
+local ActiveBodyAngularVelocity = nil
 RunService.RenderStepped:Connect(function()
-    if ScriptSense.Config.AntiAimEnabled then
-        local character = LocalPlayer.Character
-        local hrp = character and character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
-            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(ScriptSense.Config.SpinSpeed), 0)
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        if ScriptSense.Config.AntiAimEnabled then
+            if not ActiveBodyAngularVelocity or not ActiveBodyAngularVelocity.Parent then
+                ActiveBodyAngularVelocity = Instance.new("BodyAngularVelocity")
+                ActiveBodyAngularVelocity.MaxTorque = Vector3.new(0, 9e4, 0)
+                ActiveBodyAngularVelocity.P = 9e4
+                ActiveBodyAngularVelocity.Parent = hrp
+            end
+            ActiveBodyAngularVelocity.AngularVelocity = Vector3.new(0, ScriptSense.Config.SpinSpeed * 2, 0)
+        else
+            if ActiveBodyAngularVelocity then
+                pcall(function() ActiveBodyAngularVelocity:Destroy() end)
+                ActiveBodyAngularVelocity = nil
+            end
         end
     end
 end)
 
--- Input Handling for Keybinds and Toggles
+-- Input Handling for Keybinds
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if activeRebindKey then
         if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -1000,34 +1226,19 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
         return
     end
-
     if gameProcessed then return end
 
-    if input.KeyCode == ScriptSense.Config.Keybinds.MenuToggle then
-        ToggleMenuVisibility()
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.Wallhack then
-        ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.Aimbot and not IsRobloxMenuOpen() then
-        ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.Godmode then
-        ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.Fly then
-        ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.Skeleton then
-        ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.BoxEsp then
-        ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.AntiAim then
-        ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled
-    elseif input.KeyCode == ScriptSense.Config.Keybinds.TouchFling then
-        ScriptSense.Config.TouchFlingEnabled = not ScriptSense.Config.TouchFlingEnabled
-        if ScriptSense.Config.TouchFlingEnabled then
-            startFlingThread()
-        end
-    elseif input.KeyCode == Enum.KeyCode.Z then
-        ToggleKickFling()
-    end
+    if input.KeyCode == ScriptSense.Config.Keybinds.MenuToggle then ToggleMenuVisibility()
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.Wallhack then ScriptSense.Config.WallhackEnabled = not ScriptSense.Config.WallhackEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.Aimbot and not IsRobloxMenuOpen() then ScriptSense.Config.AimbotEnabled = not ScriptSense.Config.AimbotEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.Godmode then ScriptSense.Config.GodmodeEnabled = not ScriptSense.Config.GodmodeEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.Fly then ScriptSense.Config.FlyEnabled = not ScriptSense.Config.FlyEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.Skeleton then ScriptSense.Config.SkeletonEspEnabled = not ScriptSense.Config.SkeletonEspEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.BoxEsp then ScriptSense.Config.BoxEspEnabled = not ScriptSense.Config.BoxEspEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.NameEsp then ScriptSense.Config.NameEspEnabled = not ScriptSense.Config.NameEspEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.Speedhack then ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
+    elseif input.KeyCode == ScriptSense.Config.Keybinds.AntiAim then ScriptSense.Config.AntiAimEnabled = not ScriptSense.Config.AntiAimEnabled end
 end)
 
-print("[ScriptSense v6.8.0]: Fully Loaded & Initialized Successfully.")
+print("[ScriptSense v7.3.0]: Multi Fling Integrated with Custom Title.")
 return ScriptSense
