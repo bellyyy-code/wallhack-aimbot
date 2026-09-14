@@ -1,5 +1,5 @@
 local ScriptSense = {}
-ScriptSense.Version = "7.5.1"
+ScriptSense.Version = "7.6.0"
 ScriptSense.Active = true
 
 -- Services Retrieval
@@ -55,6 +55,7 @@ ScriptSense.Config = {
     DefaultWalkSpeed = 16,
     WalkSpeedValue = 32,
     SpinSpeed = 25,
+    AntiAimHeadAngle = 90,
     AimbotSmoothness = 4,
     AimbotFovRadius = 150,
     CurrentSpinAngle = 0,
@@ -240,9 +241,29 @@ MainTitleLabel.TextSize = 13
 MainTitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 MainTitleLabel.Parent = MainTitleBar
 
+-- Main Footer Bar (Bottom Name & Version)
+local MainFooterBar = Instance.new("Frame")
+MainFooterBar.Name = "MainFooterBar"
+MainFooterBar.Size = UDim2.new(1, 0, 0, 30)
+MainFooterBar.Position = UDim2.new(0, 0, 1, -30)
+MainFooterBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFooterBar.BorderSizePixel = 0
+MainFooterBar.Parent = MainControlPanel
+
+local MainFooterLabel = Instance.new("TextLabel")
+MainFooterLabel.Size = UDim2.new(1, -15, 1, 0)
+MainFooterLabel.Position = UDim2.new(0, 12, 0, 0)
+MainFooterLabel.BackgroundTransparency = 1
+MainFooterLabel.RichText = true
+MainFooterLabel.Text = '<font color="#FFFFFF">SCRIPT</font> <font color="#FF0000">SENSE</font> <font color="#AAAAAA">v' .. ScriptSense.Version .. '</font>'
+MainFooterLabel.Font = Enum.Font.GothamBold
+MainFooterLabel.TextSize = 11
+MainFooterLabel.TextXAlignment = Enum.TextXAlignment.Left
+MainFooterLabel.Parent = MainFooterBar
+
 local MainContainer = Instance.new("ScrollingFrame")
 MainContainer.Name = "MainContainer"
-MainContainer.Size = UDim2.new(1, 0, 1, -35)
+MainContainer.Size = UDim2.new(1, 0, 1, -65)
 MainContainer.Position = UDim2.new(0, 0, 0, 35)
 MainContainer.BackgroundTransparency = 1
 MainContainer.BorderSizePixel = 0
@@ -387,6 +408,64 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
     return rowFrame, button
 end
 
+local function CreateTextBoxRow(parent, labelText, initialValue, onValueChanged)
+    local rowFrame = Instance.new("Frame")
+    rowFrame.Size = UDim2.new(1, 0, 0, 38)
+    rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+    rowFrame.BackgroundTransparency = 0.2
+    rowFrame.BorderSizePixel = 0
+    rowFrame.Visible = false
+    rowFrame.Parent = parent
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(45, 45, 45)
+    stroke.Thickness = 1
+    stroke.Transparency = 1
+    stroke.Parent = rowFrame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.6, 0, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextTransparency = 1
+    label.TextColor3 = Color3.fromRGB(230, 230, 230)
+    label.TextSize = 13
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = "  " .. labelText
+    label.Parent = rowFrame
+
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0, 65, 0, 24)
+    textBox.Position = UDim2.new(1, -77, 0.5, -12)
+    textBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.TextTransparency = 1
+    textBox.TextSize = 12
+    textBox.Font = Enum.Font.GothamMedium
+    textBox.Text = tostring(initialValue)
+    textBox.ClearTextOnFocus = false
+    textBox.Parent = rowFrame
+
+    local tbStroke = Instance.new("UIStroke")
+    tbStroke.Color = Color3.fromRGB(60, 60, 60)
+    tbStroke.Thickness = 1
+    tbStroke.Transparency = 1
+    tbStroke.Parent = textBox
+
+    textBox.FocusLost:Connect(function(enterPressed)
+        local num = tonumber(textBox.Text)
+        if num then
+            onValueChanged(num)
+        else
+            textBox.Text = tostring(initialValue)
+        end
+    end)
+
+    table.insert(controlRowFrames, rowFrame)
+    return rowFrame, textBox
+end
+
 local activeRebindKey = nil
 local function GetKeyName(keyCode)
     local name = keyCode.Name
@@ -444,7 +523,7 @@ end, function(btn)
     btn.Text = "  name esp: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.NameEsp))
 end)
 
-CreateControlRow(MainContainer, "speedhack: off | speed: 32 | bind: v", function()
+CreateControlRow(MainContainer, "speedhack: off | bind: v", function()
     ScriptSense.Config.SpeedhackEnabled = not ScriptSense.Config.SpeedhackEnabled
     if not ScriptSense.Config.SpeedhackEnabled then
         local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -452,7 +531,11 @@ CreateControlRow(MainContainer, "speedhack: off | speed: 32 | bind: v", function
     end
 end, function(btn)
     local status = ScriptSense.Config.SpeedhackEnabled and "on" or "off"
-    btn.Text = "  speedhack: " .. status .. " | speed: " .. ScriptSense.Config.SpeedhackSpeed .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
+    btn.Text = "  speedhack: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.Speedhack))
+end)
+
+CreateTextBoxRow(MainContainer, "speed value", ScriptSense.Config.SpeedhackSpeed, function(val)
+    ScriptSense.Config.SpeedhackSpeed = val
 end)
 
 CreateControlRow(MainContainer, "anti-aim: off | bind: u", function()
@@ -460,6 +543,14 @@ CreateControlRow(MainContainer, "anti-aim: off | bind: u", function()
 end, function(btn)
     local status = ScriptSense.Config.AntiAimEnabled and "on" or "off"
     btn.Text = "  anti-aim: " .. status .. " | bind: " .. string.lower(GetKeyName(ScriptSense.Config.Keybinds.AntiAim))
+end)
+
+CreateTextBoxRow(MainContainer, "spin speed", ScriptSense.Config.SpinSpeed, function(val)
+    ScriptSense.Config.SpinSpeed = val
+end)
+
+CreateTextBoxRow(MainContainer, "head angle", ScriptSense.Config.AntiAimHeadAngle, function(val)
+    ScriptSense.Config.AntiAimHeadAngle = val
 end)
 
 -- Teleport Window
@@ -728,8 +819,19 @@ task.spawn(function()
                 TweenService:Create(rowFrame, rowTweenInfo, { BackgroundTransparency = 0.2 }):Play()
                 local stroke = rowFrame:FindFirstChildOfClass("UIStroke")
                 if stroke then TweenService:Create(stroke, rowTweenInfo, { Transparency = 0 }):Play() end
+                
                 local btn = rowFrame:FindFirstChildOfClass("TextButton")
                 if btn then TweenService:Create(btn, rowTweenInfo, { TextTransparency = 0 }):Play() end
+                
+                local txtBox = rowFrame:FindFirstChildOfClass("TextBox")
+                if txtBox then
+                    TweenService:Create(txtBox, rowTweenInfo, { TextTransparency = 0 }):Play()
+                    local tbStroke = txtBox:FindFirstChildOfClass("UIStroke")
+                    if tbStroke then TweenService:Create(tbStroke, rowTweenInfo, { Transparency = 0 }):Play() end
+                end
+                
+                local lbl = rowFrame:FindFirstChildOfClass("TextLabel")
+                if lbl then TweenService:Create(lbl, rowTweenInfo, { TextTransparency = 0 }):Play() end
             end)
         end
     end
@@ -1399,8 +1501,39 @@ RunService.RenderStepped:Connect(function()
             local currentPos = hrp.Position
             ScriptSense.Config.CurrentSpinAngle = (ScriptSense.Config.CurrentSpinAngle + ScriptSense.Config.SpinSpeed) % 360
             hrp.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, math.rad(ScriptSense.Config.CurrentSpinAngle), 0)
+            
+            -- Head rotation offset
+            local head = character:FindFirstChild("Head")
+            if head then
+                local neck = nil
+                for _, desc in ipairs(character:GetDescendants()) do
+                    if desc:IsA("Motor6D") and desc.Name == "Neck" then
+                        neck = desc
+                        break
+                    end
+                end
+                if neck then
+                    if not neck:GetAttribute("OriginalC0") then
+                        neck:SetAttribute("OriginalC0", neck.C0)
+                    end
+                    local origC0 = neck:GetAttribute("OriginalC0")
+                    if typeof(origC0) == "CFrame" then
+                        neck.C0 = origC0 * CFrame.Angles(0, math.rad(ScriptSense.Config.AntiAimHeadAngle), 0)
+                    end
+                end
+            end
         else
             humanoid.AutoRotate = true
+            for _, desc in ipairs(character:GetDescendants()) do
+                if desc:IsA("Motor6D") and desc.Name == "Neck" then
+                    local origC0 = desc:GetAttribute("OriginalC0")
+                    if typeof(origC0) == "CFrame" then
+                        desc.C0 = origC0
+                        desc:SetAttribute("OriginalC0", nil)
+                    end
+                    break
+                end
+            end
         end
     end
 end)
@@ -1444,5 +1577,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     RefreshControlRowTexts()
 end)
 
-print("[ScriptSense v7.5.1]: Title updated to SCRIPT SENSE, top-bar drag handles & element clipping fixed.")
+print("[ScriptSense v7.6.0]: Main script updated with version branding footer.")
 return ScriptSense
