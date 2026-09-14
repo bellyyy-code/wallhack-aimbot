@@ -187,12 +187,13 @@ ArrowStroke.Color = Color3.fromRGB(60, 60, 60)
 ArrowStroke.Thickness = 1
 ArrowStroke.Parent = MenuToggleArrow
 
--- Main Control Panel Frame (Starts as just the title bar in the center)
+-- Main Control Panel Frame (Изначально абсолютно прозрачный для чистого тайпврайтера в центре)
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
 MainControlPanel.Size = UDim2.new(0, 260, 0, 35)
 MainControlPanel.Position = UDim2.new(0.5, -130, 0.5, -17.5)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainControlPanel.BackgroundTransparency = 1 -- Скрыт фон до окончания печати текста
 MainControlPanel.BorderSizePixel = 0
 MainControlPanel.ClipsDescendants = true
 MainControlPanel.Visible = true
@@ -201,12 +202,14 @@ MainControlPanel.Parent = ScreenGui
 local PanelStroke = Instance.new("UIStroke")
 PanelStroke.Color = Color3.fromRGB(50, 50, 50)
 PanelStroke.Thickness = 2
+PanelStroke.Transparency = 1 -- Обводка тоже скрыта в начале
 PanelStroke.Parent = MainControlPanel
 
 -- Main Panel Title Bar
 local MainTitleBar = Instance.new("Frame")
 MainTitleBar.Size = UDim2.new(1, 0, 0, 35)
 MainTitleBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+MainTitleBar.BackgroundTransparency = 1
 MainTitleBar.BorderSizePixel = 0
 MainTitleBar.Parent = MainControlPanel
 
@@ -267,7 +270,7 @@ local function CreateControlRow(parent, initialText, callback, updateCallback)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = false -- Скрыто до поэтапной загрузки гуи
+    rowFrame.Visible = false
     rowFrame.Parent = parent
 
     local stroke = Instance.new("UIStroke")
@@ -312,7 +315,7 @@ local function CreateTextBoxRow(parent, labelText, initialValue, onTextChanged)
     rowFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     rowFrame.BackgroundTransparency = 0.2
     rowFrame.BorderSizePixel = 0
-    rowFrame.Visible = false -- Скрыто до поэтапной загрузки гуи
+    rowFrame.Visible = false
     rowFrame.Parent = parent
 
     local stroke = Instance.new("UIStroke")
@@ -659,9 +662,9 @@ CreateControlRow(MainContainer, "keybinds manager", function()
     ToggleKeybindsMenu()
 end)
 
--- INTRO ANIMATION & 2-SECOND TYPEWRITER + 1.5s PAUSE + SEQUENTIAL GUI LOAD
+-- INTRO ANIMATION & 2-SECOND TYPEWRITER + FADE IN BACKGROUND + SLIDE + 1.5s PAUSE + SEQUENTIAL GUI LOAD (0.3s PER ITEM)
 task.spawn(function()
-    -- Шаг 1: Печатаем название по 1 букве ровно за 2 секунды в центре (пока панель размером только с шапку)
+    -- Шаг 1: Печатаем название по 1 букве в центре (панель прозрачная, виден только текст)
     local rawString = "SCRIPT SENSE v" .. ScriptSense.Version
     local interval = 2 / #rawString
 
@@ -681,27 +684,37 @@ task.spawn(function()
         task.wait(interval)
     end
 
-    -- Шаг 2: Перемещение названия на свое место в левый верхний угол
+    -- Шаг 2: Плавное проявление фона и обводки панели (чтобы не было резкого прямоугольника)
+    local fadeTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 0.2
+    })
+    local strokeFade = TweenService:Create(PanelStroke, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Transparency = 0
+    })
+    fadeTween:Play()
+    strokeFade:Play()
+
+    -- Шаг 3: Перемещение названия на свое место в левый верхний угол
     local slideTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
         Position = UDim2.new(0, 20, 0, 65)
     })
     slideTween:Play()
     slideTween.Completed:Wait()
 
-    -- Шаг 3: Тайминг 1.5 секунды
+    -- Шаг 4: Тайминг ровно 1.5 секунды паузы
     task.wait(1.5)
 
-    -- Шаг 4: Загрузка главного гуи (плавное раскрытие панели на всю высоту)
+    -- Шаг 5: Загрузка главного гуи (плавное раскрытие панели на всю высоту)
     local expandTween = TweenService:Create(MainControlPanel, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, 260, 0, 480)
     })
     expandTween:Play()
     expandTween.Completed:Wait()
 
-    -- Шаг 5: Появление элементов меню по очереди (каждая штука)
+    -- Шаг 6: Появление элементов меню по очереди (каждая штука с задержкой 0.3 секунды)
     for _, row in ipairs(controlRowFrames) do
         row.Visible = true
-        task.wait(0.04) -- Плавный каскадный тайпврайтер для элементов гуи
+        task.wait(0.3)
     end
 end)
 
