@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
@@ -107,7 +108,7 @@ pcall(function()
     end
 end)
 
--- Main UI Container (PlayerGui priority for Opium macOS compatibility)
+-- Main UI Container
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ScriptSenseEnterpriseGUI"
 ScreenGui.ResetOnSpawn = false
@@ -125,7 +126,7 @@ local ESPContainer = Instance.new("Folder")
 ESPContainer.Name = "ScriptSenseESPContainer"
 ESPContainer.Parent = ScreenGui
 
--- Ultra-smooth & perfectly round FOV Circle Initialization (NumSides = 128)
+-- Ultra-smooth FOV Circle
 local fovCircle = nil
 pcall(function()
     fovCircle = Drawing.new("Circle")
@@ -177,7 +178,7 @@ MenuToggleArrow.TextColor3 = Color3.fromRGB(255, 255, 255)
 MenuToggleArrow.TextTransparency = 0
 MenuToggleArrow.TextSize = 13
 MenuToggleArrow.Font = Enum.Font.GothamBold
-MenuToggleArrow.Text = "▼"
+MenuToggleArrow.Text = "▲"
 MenuToggleArrow.LayoutOrder = 2
 MenuToggleArrow.Parent = WatermarkContainer
 
@@ -186,15 +187,15 @@ ArrowStroke.Color = Color3.fromRGB(60, 60, 60)
 ArrowStroke.Thickness = 1
 ArrowStroke.Parent = MenuToggleArrow
 
--- Main Control Panel Frame
+-- Main Control Panel Frame (Starts in Center for Intro Animation)
 local MainControlPanel = Instance.new("Frame")
 MainControlPanel.Name = "MainControlPanel"
 MainControlPanel.Size = UDim2.new(0, 260, 0, 480)
-MainControlPanel.Position = UDim2.new(0, 20, 0, 65)
+MainControlPanel.Position = UDim2.new(0.5, -130, 0.5, -240)
 MainControlPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainControlPanel.BorderSizePixel = 0
 MainControlPanel.ClipsDescendants = true
-MainControlPanel.Visible = false
+MainControlPanel.Visible = true
 MainControlPanel.Parent = ScreenGui
 
 local PanelStroke = Instance.new("UIStroke")
@@ -255,7 +256,16 @@ MainListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 MainListLayout.Padding = UDim.new(0, 4)
 MainListLayout.Parent = MainContainer
 
-local isPanelVisible = false
+local isPanelVisible = true
+
+-- INTRO ANIMATION: Center for 2 seconds, then slide left
+task.spawn(function()
+    task.wait(2)
+    local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local slideTween = TweenService:Create(MainControlPanel, tweenInfo, {Position = UDim2.new(0, 20, 0, 65)})
+    slideTween:Play()
+end)
+
 local function ToggleMenuVisibility()
     isPanelVisible = not isPanelVisible
     MainControlPanel.Visible = isPanelVisible
